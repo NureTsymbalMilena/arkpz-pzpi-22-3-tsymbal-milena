@@ -1,0 +1,1713 @@
+1
+Харківський національний університет радіоелектроніки
+Факультет комп'ютерних наук
+Кафедра програмної інженерії
+ЗВІТ
+до практичного заняття №2 з дисципліни
+«Аналіз та рефакторинг коду»
+на тему: «Методи рефакторингу коду програмного забезпечення»
+Виконала
+ст. гр. ПЗПІ-22-3
+Цимбал Мілена Русланівна
+Перевірив
+ст. викладач кафедри ПІ
+Сокорчук Ігор Петрович
+Харків 2024
+2
+1 МЕТА
+Навчитись основним методам рефакторингу коду на основі реальних прикладів з їхніх власних програмних проєктів, навчитися ідентифікувати проблеми в коді та використовувати відповідні методи рефакторингу для покращення його якості.
+2 ВСТУП
+Рефакторинг — це процес вдосконалення внутрішньої структури коду без зміни його зовнішнього функціонування. Його основною метою є покращення читабельності коду, полегшення його підтримки та підготовка до можливих змін у майбутньому. Через рефакторинг можна усунути технічний борг, зробити код більш ефективним та зрозумілим, що в свою чергу знижує ризик виникнення помилок.
+У сучасному розробці програмного забезпечення якість коду є одним із ключових факторів, який впливає на його надійність, швидкодію та здатність до масштабування. З часом, коли до проєкту додаються нові функції або не дотримуються стандарти кодування, база коду може ставати складнішою. Це робить рефакторинг необхідною практикою для підтримання високої якості.
+Метою цієї роботи є навчання основним методам рефакторингу на прикладах із реальних проєктів. Це дозволить глибше зрозуміти процес аналізу коду, виявлення проблемних місць та вибір найкращих способів їх усунення. Оволодіння цими методами сприятиме розвитку практичних навичок роботи з проєктами та зробить процес розробки більш ефективним.
+3
+3 ХІД РОБОТИ
+Відео пояснення методів рефакторингу наведено у додатку А.
+3.1 Метод рефакторингу «Вбудований клас»
+Програмний код класу до використання методу рефакторинга «Вбудований клас» наведено у додатку Б.
+3.1.1 Опис коду до рефакторингу
+Клас TotalSum відповідає за обчислення загальної суми вартості товарів на складі. Він містить методи для підрахунку суми вартості товарів, а також для форматування цієї суми у вигляді валюти. Клас дозволяє зручно обчислювати і виводити загальну суму товарів у відформатованому вигляді.
+Клас Print надає функціональність для виведення інформації про товари на складі у вигляді таблиць. Він дає користувачеві можливість вибору способу виведення даних: усі товари разом або ж товари, поділені на категорії (їжа, одяг, електроніка). Крім того, клас дозволяє виводити деталі рахунків, включаючи дату, номер рахунку та загальну суму. Клас використовує таблиці для відображення товарів та їхніх характеристик, а також надає методи для виведення повідомлень з різними кольорами для інформування користувача.
+3.1.2 Опис причин застосування рефакторинга
+Клас TotalSum має обмежену функціональність, яка зводиться до обчислення загальної суми товарів. Однак, цей клас використовується лише в одному контексті — під час друку товарів у консоль, що обмежує його практичне застосування. Така маленька кількість функціональності не виправдовує необхідність окремого класу, оскільки він використовується
+4
+тільки для одного завдання і не має значного впливу на загальну структуру програми.
+3.1.3 Обґрунтування вибору методу рефакторинга
+Був обраний метод "Вбудований клас", оскільки клас TotalSum виконує обмежену функціональність — обчислення загальної суми товарів та форматування чисел, яка використовується виключно для виведення інформації про товари в консоль. Оскільки цей метод має дуже обмежене застосування, то і не вимагає створення окремої сутності, перенесення його в клас, який безпосередньо використовує цей метод, виглядає доцільним. Існування класу TotalSum як окремої сутності не має сенсу, оскільки це призвело б до зайвого ускладнення програми без реальної потреби.
+3.1.4 Аналіз коду після застосування методу рефакторингу
+Після застосування методу вкладених класів, методи класу TotalSum, які виконували обчислення загальної суми товарів, були перенесені до класу Print. Це спростило програму, оскільки зменшила кількість окремих класів і забезпечила більш чітке розмежування відповідальностей в рамках одного класу, який безпосередньо відповідає за виведення даних на екран.
+Переміщення методів безпосередньо в клас Print також дозволило зменшити складність коду, оскільки тепер обчислення суми товарів відбувається безпосередньо перед виведенням результатів, без необхідності звертатися до додаткового класу. Це забезпечує зручність у підтримці коду та зменшує дублювання, оскільки вся логіка, пов’язана з виведенням товарів та обчисленням суми, знаходиться в одному місці.
+Що стосується часу виконання, перенесення методів в один клас могло дещо зменшити накладні витрати, пов'язані з викликами окремих методів або створенням додаткових об'єктів класів. Однак, це скорочення часу може бути
+5
+незначним, оскільки сама операція обчислення суми та виведення в консоль займає дуже мало часу, і зміни в структурі коду не мають значного впливу на загальний час виконання програми. У результаті, основною перевагою є спрощення структури коду та полегшення підтримки програми.
+3.2 Метод рефакторингу «Метод перейменування»
+Програмний код класу до використання методу рефакторинга «Метод перейменування» наведено у додатку В.
+3.2.1 Опис коду до рефакторингу
+Цей код реалізує активність для відображення списків підписників та тих, на кого підписано на платформі.
+У коді є кілька фрагментів, які відповідають за відображення різних частин інтерфейсу: заголовок, підписки та футер. Кожен з цих фрагментів відображає відповідну частину екрану, і на них застосовується різна логіка, залежно від того, які дані потрібно відобразити (підписники або підписки).
+Основна функціональність програми полягає у взаємодії з сервером через запити для отримання списків підписників та тих, на кого користувач підписаний. За допомогою Retrofit відбувається запит до серверу для отримання цих даних, а потім вони відображаються в інтерфейсі. Є також методи для перевірки, чи підписаний поточний користувач на іншого користувача.
+Крім того, реалізовано механізм для оновлення інформації про підписки та підписників при зміні стану підписки через інтерфейс. Усі дані відображаються через відповідні фрагменти, що дозволяє організувати зручну та чисту структуру для відображення різної інформації на одному екрані.
+6
+3.2.2 Опис причин застосування рефакторинга
+Причини застосування рефакторингу в даному випадку полягають у тому, що деякі методи мають незрозумілі або не інтуїтивно зрозумілі назви. Це ускладнює розуміння того, що саме відбувається в програмі, і що кожен метод робить. Назви методів повинні чітко відображати їхню мету та функціональність, щоб код був зрозумілим не лише розробнику, який його написав, але й іншим членам команди, а також для майбутнього обслуговування чи розширення програми.
+Наприклад, методи, які виконують запити до сервера для отримання підписників чи підписок, мають загальні назви, які не завжди дають чітке уявлення про їх призначення та контекст використання. Це може призвести до ситуацій, коли важко визначити, який метод відповідає за яку частину функціональності без детального аналізу його реалізації. Крім того, відсутність чіткої семантики в іменах методів може ускладнити подальшу рефакторизацію та тестування.
+3.2.3 Обґрунтування вибору методу рефакторинга
+Обґрунтування вибору методу рефакторингу «Метод перейменування» полягає в тому, що багато методів у коді мають незрозумілі або неточні назви, які не відображають їх функціональності або контексту використання. Це може ускладнити розуміння коду, як для розробників, так і для інших учасників команди, що може призвести до помилок або складнощів при подальшій розробці, тестуванні та підтримці програми.
+Перейменування методів дозволяє чітко вказати на те, що саме робить метод, що підвищує читабельність і зрозумілість коду. Це дозволяє краще організувати код і робить його більш логічним і інтуїтивно зрозумілим. Наприклад, методи, що виконують запити до сервера для отримання даних про підписників або підписки, повинні мати назви, які безпосередньо
+7
+вказують на їхню роль, наприклад, «fetchFollowers», «getFollowings» або «loadFollowersData», що буде набагато зрозуміліше і чіткіше, ніж загальні або неінформативні назви.
+Вибір методу перейменування дозволяє уникнути необхідності суттєвих змін в архітектурі програми чи логіці, одночасно забезпечуючи значне покращення її зрозумілості. Це дозволяє заощадити час і ресурси, не вимагаючи великих зусиль для реорганізації структури коду, але при цьому робить код більш підтримуваним, зрозумілим і готовим до майбутніх змін або розширень.
+3.2.4 Аналіз коду після застосування методу рефакторингу
+Після застосування методу рефакторингу «Перейменування» в коді було змінено ряд назв змінних, методів і фрагментів для покращення зрозумілості та читабельності.
+Зміни в назвах змінних, таких як «followings» на «followingsList» і «followers» на «followersList», зробили код більш зрозумілим. Тепер чітко видно, що ці змінні містять списки, що полегшує розуміння коду. Це важливо для уникнення плутанини при роботі з даними, особливо коли в коді є декілька змінних, які можуть мати подібні назви, але різний тип. Назва «userId» залишена без змін, оскільки це загальноприйнята практика для позначення ідентифікатора користувача, що не потребує уточнення. Назва «username» також збережена без змін, оскільки вона є достатньо зрозумілою для позначення імені користувача.
+Що стосується методів, зміна назви методу «followings()» на «getFollowings()» чітко вказує на операцію отримання даних, що робить код більш читабельним. Ось такі уточнення в назвах допомагають зробити код більш інтуїтивно зрозумілим для розробників, які працюють з ним у майбутньому. Це значно полегшує підтримку та розвиток коду, знижує
+8
+ймовірність помилок через неправильне розуміння призначення змінних і методів.
+3.3 Метод рефакторингу «Видалення параметру»
+Програмний код класу до використання методу рефакторинга «Видалення параметру» наведено у додатку Г.
+3.3.1 Опис коду до рефакторингу
+Цей код реалізує активність для відображення списків підписників і підписок користувача на платформі. Він використовує кілька фрагментів, кожен з яких відповідає за відображення певної частини інтерфейсу, таких як заголовок, список підписок та футер. Відповідно до того, які дані необхідно показати (підписники або підписки), застосовується різна логіка для відображення інформації.
+Основна функціональність активності полягає у взаємодії з сервером через запити, щоб отримати списки підписників і підписок користувача. Для цього використовується Retrofit, який виконує запити до сервера, а отримані дані відображаються у відповідних елементах інтерфейсу. Крім того, є методи для перевірки, чи підписаний поточний користувач на іншого.
+Інтерфейс також має механізм оновлення списків підписників та підписок, коли змінюється стан підписки через інтерфейс користувача. Всі ці дані організовано через фрагменти, що дозволяє створити зручну та чітку структуру для відображення різної інформації на одному екрані.
+3.3.2 Опис причин застосування рефакторинга
+Передача userId через параметри методу є непотрібною з кількох причин. По-перше, ідентифікатор користувача зазвичай є частиною контексту
+9
+класу, який обробляє дані. У випадку, коли цей ідентифікатор зберігається в класі encryptedPreferencesManager, його можна безпосередньо отримати з цього класу, що зменшує потребу в додаткових параметрах у методах. Це зручніше, оскільки всі дані, пов'язані з поточним користувачем, вже знаходяться в одному місці, що дозволяє зменшити кількість параметрів, необхідних для кожного виклику методу.
+По-друге, передача userId через параметри може призвести до ситуацій, коли цей ідентифікатор використовується неправильно або не актуальний, якщо, наприклад, відбуваються зміни в контексті користувача або сесії. Якщо кожного разу потрібно передавати ідентифікатор, це збільшує ймовірність помилок, особливо якщо розробник випадково передасть неправильне значення або забуде це зробити. Це може спричинити баги, що важко діагностувати, оскільки проблема може бути пов'язана з неправильним ідентифікатором.
+3.3.3 Обґрунтування вибору методу рефакторинга
+Метод рефакторингу «Видалення параметра» [1] був вибраний для цієї ситуації з кількох причин, які сприяють підвищенню якості коду та зменшенню ймовірності помилок. Передача параметра userId через методи додає зайву складність, оскільки кожного разу потрібно вручну передавати ідентифікатор користувача. Це може призвести до помилок, якщо параметр не передано або передано невірно. Заміна параметра на отримання значення з внутрішнього поля класу, що містить інформацію про поточного користувача, зменшує кількість параметрів у методах, роблячи код більш лаконічним і зручним для розуміння. Ідентифікатор користувача є частиною контексту, що належить поточному користувачеві, тому зберігання та отримання цієї інформації з централізованого класу, такого як encryptedPreferencesManager, забезпечує єдину точку доступу для отримання ідентифікатора, що спрощує управління даними користувача. Якщо параметри, такі як userId, передавати
+10
+через методи, зростає ймовірність їх неправильного використання або забуття, що може призвести до важких для виявлення помилок. Видалення параметра з методів і отримання значення напряму з класу дозволяє знизити ризик таких помилок. Також, коли ідентифікатор користувача доступний безпосередньо з класу налаштувань, це відкриває можливість для подальшого розвитку функціональності без необхідності оновлювати методи, що потребують цього параметра. Це спрощує тестування методів, оскільки достатньо налаштувати стан класу, і перевіряти методи, які автоматично використовують ці дані. Вибір методу рефакторингу «Видалення параметра» дозволяє спростити код, зменшити кількість помилок, покращити підтримку та тестування, а також зробити програму більш гнучкою для подальших змін.
+3.3.4 Аналіз коду після застосування методу рефакторингу
+По-перше, було зменшено кількість зайвих параметрів, оскільки тепер ідентифікатор користувача (userId) отримується безпосередньо з класу через encryptedPreferencesManager.getData("user_id"), а не передається як параметр у методи. Це дозволяє спростити код і зменшити його складність, роблячи його більш зрозумілим та компактним.
+Також рефакторинг знижує ймовірність помилок, які могли виникати через неправильне використання переданих параметрів. Оскільки userId тепер отримується з одного джерела, це унеможливлює ситуації, коли в методи передавалися некоректні значення. Логіка перевірки на порожнечу та порівняння ідентифікаторів стала більш зрозумілою і чистою.
+Важливим є те, що обидва методи (getFollowings і getFollowers) тепер мають однакову структуру. Це дозволяє значно спростити подальшу підтримку коду, оскільки зміни, що стосуються отримання даних користувача, можна буде вносити в одному місці, а не змінювати кожен метод окремо. Завдяки цьому код стає більш гнучким і розширюваним.
+11
+ВИСНОВКИ
+Рефакторинг є критичним процесом для підтримки високої якості коду. Він допомагає зробити код більш зрозумілим, що полегшує команді роботу над проєктом, знижує технічний борг і дозволяє уникнути накопичення проблем у майбутньому. Завдяки зниженню складності, рефакторинг сприяє підвищенню продуктивності розробників, покращує надійність і масштабованість програмного забезпечення, а також спрощує виявлення та виправлення помилок, що знижує ризики помилок у складних системах.
+Рефакторинг має бути здійснений вчасно і правильно. Найкраще це робити на ранніх етапах розробки, щоб запобігти накопиченню проблем. Крім того, його слід проводити після успішного тестування функціональності, оскільки рефакторинг не повинен змінювати поведінку системи. Він також корисний при додаванні нових функцій, оскільки спрощує інтеграцію змін. Якщо виявлено ознаки поганого коду, такі як дублювання, надмірна складність чи тісні залежності між модулями, застосування методів рефакторингу є обґрунтованим кроком.
+12
+СПИСОК ВИКОРИСТАННИХ ДЖЕРЕЛ
+1. Фаулер М. Refactoring: Improving the Design of Existing Code. Addison-Wesley Professional, 1999. (дата звернення 12.12.2024)
+13
+ДОДАТОК А
+Відео-посилання на YouTube
+https://youtu.be/vWVQCmm_fvY
+14
+ДОДАТОК Б
+Код до та після застосування методу рефакторингу «Вбудований клас»
+1 //Код до застосування методу рефакторингу «Вбудований клас»
+2
+3 namespace Warehouse
+4 {
+5 public class Print
+6 {
+7 public delegate void GoodsPrinter(Warehouse allGoods);
+8 public static void WayOfPrinting(Warehouse allGoods, GoodsPrinter? printGoodsTogether = null, bool printCategoriesOfGoods = false)
+9 {
+10 Console.WriteLine("\n\nChoose the way of printing goods:\n\n1.Print all goods together\n\n2.Print goods divided into categories");
+11 Console.Write("\nEnter the chosen option: ");
+12
+13 string? input = Console.ReadLine();
+14 bool isValid = false;
+15
+16 while (!isValid)
+17 {
+18 switch (input)
+19 {
+20 case "1":
+21 if(printGoodsTogether != null)
+22 {
+23 printGoodsTogether(allGoods);
+24 }
+25 isValid = true;
+26 break;
+27 case "2":
+28 if(printCategoriesOfGoods == false)
+15
+29 {
+30 PrintGoodCategories(allGoods);
+31 }
+32 else
+33 {
+34 PrintGoodCategories(allGoods, true);
+35 }
+36 isValid = true;
+37 break;
+38 default:
+39 Message(ConsoleColor.Red, "\nInvalid command! Try to rewrite it.\n");
+40 WayOfPrinting(allGoods);
+41 break;
+42 }
+43 }
+44 }
+45
+46
+47 public static void PrintGoods<T>(Warehouse goods, string title, DateTime? dateOfMakingInvoice = null, List<Good>? totalSumOfGood = null) where T : Good
+48 {
+49 if (goods.Count != 0)
+50 {
+51 PrintTitle(title);
+52 PrintDateOfMakingInvoice(dateOfMakingInvoice);
+53 PrintGoodsTable(goods, totalSumOfGood);
+54 }
+55 else
+56 {
+57 Message(ConsoleColor.Red, "\nNo goods were found.");
+58 }
+59 }
+60 private static void PrintTitle(string title)
+16
+61 {
+62 Console.WriteLine($"\n\t\t\t\t\t\t\t\t{title}\n");
+63 }
+64 private static void PrintDateOfMakingInvoice(DateTime? dateOfMakingInvoice)
+65 {
+66 if (dateOfMakingInvoice != null)
+67 {
+68 Console.WriteLine($"\n\t\t\t\t\t\t\t\t{dateOfMakingInvoice}\n");
+69 }
+70 }
+71 private static void PrintGoodsTable(Warehouse goods, List<Good>? totalSumOfGood)
+72 {
+73 int counter = 1;
+74 var table = CreateConsoleTable(goods, counter, totalSumOfGood);
+75
+76 Console.Write(table.ToString());
+77 Console.WriteLine($"\n\n Total sum: {TotalSum.CalculateTotalSum(totalSumOfGood == null ? goods : totalSumOfGood!)} uah\n");
+78 }
+79 private static ConsoleTable CreateConsoleTable(Warehouse goods, int counter, List<Good>? totalSumOfGood)
+80 {
+81 var table = new ConsoleTable("№", "Category", "Name of a good", "Size", "Color", "Brand", "Model", "Company",
+82 "Unit of measure", "Unit of price", "Amount", "Expiry date", "Date of last delivery");
+83
+84 foreach (Good item in goods)
+85 {
+86 AddRowToTable(table, item, counter);
+87
+17
+88 if (totalSumOfGood != null)
+89 {
+90 totalSumOfGood.Add(item);
+91 }
+92
+93 counter++;
+94 }
+95
+96 return table;
+97 }
+98 private static void AddRowToTable(ConsoleTable table, Good item, int counter)
+99 {
+100 table.AddRow(
+101 counter,
+102 item.Category.ToLower(),
+103 item.NameOfGood.ToLower(),
+104 item is Clothing clothingSize ? clothingSize.Size.ToLower() : "",
+105 item is Clothing clothingColor ? clothingColor.Color.ToLower() : "",
+106 item is Clothing clothingBrand ? (clothingBrand.Brand.Substring(0, 1).ToUpper() + clothingBrand.Brand.Substring(1).ToLower()) : "",
+107 item is Electronics electronicsModel ? electronicsModel.Model : "",
+108 item is Electronics electronicsCompany ? (electronicsCompany.Company.Substring(0, 1).ToUpper() + electronicsCompany.Company.Substring(1).ToLower()) : "",
+109 item.UnitOfMeasure,
+110 $"{item.UnitPrice} uah/{item.UnitOfMeasure}",
+111 item.Amount,
+112 item is Food foodExpiryDate ? foodExpiryDate.ExpiryDate.ToShortDateString() : "",
+113 item.DateOfLastDelivery);
+114 }
+18
+115
+116
+117
+118 private static void PrintCategoryOfGoods<T>(string[] header, Warehouse goods, string title, List<Good> totalSumOfGood, bool? printEmptyLists = null) where T : Good
+119 {
+120 var table = new ConsoleTable(header);
+121
+122 int counter = 1;
+123
+124 foreach (T good in goods.OfType<T>())
+125 {
+126 if (good is Food food)
+127 {
+128 table.AddRow(
+129 counter++,
+130 food.NameOfGood.ToLower(),
+131 food.UnitOfMeasure.ToLower(),
+132 $"{food.UnitPrice} uah/{food.UnitOfMeasure}",
+133 food.Amount,
+134 food.ExpiryDate.ToShortDateString(),
+135 food.DateOfLastDelivery);
+136 totalSumOfGood.Add(food);
+137 }
+138 else if (good is Clothing clothing)
+139 {
+140 table.AddRow(
+141 counter++,
+142 clothing.NameOfGood.ToLower(),
+143 clothing.Size.ToLower(),
+144 clothing.Color.ToLower(),
+145 clothing.Brand,
+146 clothing.UnitOfMeasure.ToLower(),
+147 $"{clothing.UnitPrice} uah/{clothing.UnitOfMeasure}",
+19
+148 clothing.Amount,
+149 clothing.DateOfLastDelivery);
+150 totalSumOfGood.Add(clothing);
+151 }
+152 else if (good is Electronics electronics)
+153 {
+154 table.AddRow(
+155 counter++,
+156 electronics.NameOfGood.ToLower(),
+157 electronics.Model,
+158 electronics.Company,
+159 electronics.UnitOfMeasure.ToLower(),
+160 $"{electronics.UnitPrice} uah/{electronics.UnitOfMeasure}",
+161 electronics.Amount,
+162 electronics.DateOfLastDelivery);
+163 totalSumOfGood.Add(electronics);
+164 }
+165 }
+166 if (table.Rows.Count > 0)
+167 {
+168 Console.WriteLine($"\n\t\t\t\t\t\t{title}\n");
+169 Console.Write(table.ToString());
+170 Console.WriteLine($"\n\n Total sum: {TotalSum.CalculateTotalSum(totalSumOfGood == null ? goods : totalSumOfGood!)} uah");
+171 }
+172 else if (printEmptyLists == true)
+173 {
+174 PrintEmptyListMessage<T>();
+175 }
+176 }
+177
+178 private static void PrintEmptyListMessage<T>()
+179 {
+180 if (typeof(T) == typeof(Food))
+20
+181 {
+182 Message(ConsoleColor.Red, $"\n No food goods were found.");
+183 }
+184 else if (typeof(T) == typeof(Clothing))
+185 {
+186 Message(ConsoleColor.Red, $"\n No clothing goods were found.");
+187 }
+188 else if (typeof(T) == typeof(Electronics))
+189 {
+190 Message(ConsoleColor.Red, $"\n No electronic goods were found.\n");
+191 }
+192 }
+193
+194 private static void PrintGoodCategories(Warehouse allGoods, bool printCategoriesOfGoods = false)
+195 {
+196 PrintCategoryOfGoods<Food>(new string[]{"№", "Name of a good", "Unit of measure", "Unit of price", "Amount",
+197 "Expiry date", "Date of last delivery"}, allGoods, "Food", new List<Good>(), printCategoriesOfGoods);
+198
+199 PrintCategoryOfGoods<Clothing>(new string[] {
+200 "№", "Name of a good", "Size", "Color", "Brand", "Unit of measure", "Unit of price",
+201 "Amount", "Date of last delivery"}, allGoods, "Clothing", new List<Good>(), printCategoriesOfGoods);
+202
+203 PrintCategoryOfGoods<Electronics>(new string[]{ "№", "Name of a good", "Model", "Company", "Unit of measure", "Unit of price",
+204 "Amount", "Date of last delivery" }, allGoods, "Electronics", new List<Good>(), printCategoriesOfGoods);
+205
+21
+206 }
+207
+208
+209
+210 public static void ListOfAllGoods(Warehouse allGoods)
+211 {
+212 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "List of all goods"));
+213 }
+214
+215 public static void ListAfetrEditing(Warehouse allGoods)
+216 {
+217
+218 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "Edited goods"));
+219 }
+220
+221 public static void ListOfFoundGoods(Warehouse allGoods)
+222 {
+223 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "Found goods"), true);
+224 }
+225
+226
+227
+228 private static void PrintInvoice(Invoice invoice, string title)
+229 {
+230 invoice.DateOfMakingInvoice = DateTime.Now;
+231
+232 PrintGoods<Good>(invoice, $"{title} {invoice.NumberOfInvoice}", invoice.DateOfMakingInvoice);
+233 }
+234
+235 public static void PrintIncomeInvoice(Invoice invoice)
+236 {
+22
+237 PrintInvoice(invoice, "Income invoice");
+238 }
+239
+240 public static void PrintExpenceInvoice(Invoice invoice)
+241 {
+242 PrintInvoice(invoice, "Expence invoice");
+243 }
+244
+245
+246
+247 private static void PrintInvoices(BaseOfInvoices invoices, string title)//all invoices
+248 {
+249 foreach (Invoice invoice in invoices)
+250 {
+251 PrintGoods<Good>(invoice, $"{title} {invoice.NumberOfInvoice}", invoice.DateOfMakingInvoice);
+252 }
+253 }
+254
+255 public static void PrintIncomeInvoices(BaseOfInvoices incomeInvoice)
+256 {
+257 PrintInvoices(incomeInvoice, "Income invoice");
+258 }
+259
+260 public static void PrintExpenceInvoices(BaseOfInvoices expenceInvoice)
+261 {
+262 PrintInvoices(expenceInvoice, "Expence invoice");
+263 }
+264
+265
+266
+267 public static void Message(ConsoleColor color, string message)
+23
+268 {
+269 Console.ForegroundColor = color;
+270 Console.WriteLine(message);
+271 Console.ResetColor();
+272 }
+273 }
+274 }
+275
+276 namespace Warehouse
+277 {
+278 internal class TotalSum
+279 {
+280 public static string CalculateTotalSum(IEnumerable<Good> goods)
+281 {
+282 double totalSum = 0;
+283
+284 foreach (Good good in goods)
+285 {
+286 totalSum += good.UnitPrice * good.Amount;
+287 }
+288
+289 return FormatCurrency(totalSum);
+290 }
+291 private static string FormatCurrency(double amount)
+292 {
+293 return amount.ToString("#,##0.00", CultureInfo.InvariantCulture);
+294 }
+295 }
+296 }
+297
+298
+299 //Код після застосування методу рефакторингу «Вбудований клас»
+300
+301 namespace Warehouse
+24
+302 {
+303 public class Print
+304 {
+305 public delegate void GoodsPrinter(Warehouse allGoods);
+306 public static void WayOfPrinting(Warehouse allGoods, GoodsPrinter? printGoodsTogether = null, bool printCategoriesOfGoods = false)
+307 {
+308 Console.WriteLine("\n\nChoose the way of printing goods:\n\n1.Print all goods together\n\n2.Print goods divided into categories");
+309 Console.Write("\nEnter the chosen option: ");
+310
+311 string? input = Console.ReadLine();
+312 bool isValid = false;
+313
+314 while (!isValid)
+315 {
+316 switch (input)
+317 {
+318 case "1":
+319 if(printGoodsTogether != null)
+320 {
+321 printGoodsTogether(allGoods);
+322 }
+323 isValid = true;
+324 break;
+325 case "2":
+326 if(printCategoriesOfGoods == false)
+327 {
+328 PrintGoodCategories(allGoods);
+329 }
+330 else
+331 {
+332 PrintGoodCategories(allGoods, true);
+333 }
+25
+334 isValid = true;
+335 break;
+336 default:
+337 Message(ConsoleColor.Red, "\nInvalid command! Try to rewrite it.\n");
+338 WayOfPrinting(allGoods);
+339 break;
+340 }
+341 }
+342 }
+343
+344
+345 public static void PrintGoods<T>(Warehouse goods, string title, DateTime? dateOfMakingInvoice = null, List<Good>? totalSumOfGood = null) where T : Good
+346 {
+347 if (goods.Count != 0)
+348 {
+349 PrintTitle(title);
+350 PrintDateOfMakingInvoice(dateOfMakingInvoice);
+351 PrintGoodsTable(goods, totalSumOfGood);
+352 }
+353 else
+354 {
+355 Message(ConsoleColor.Red, "\nNo goods were found.");
+356 }
+357 }
+358 private static void PrintTitle(string title)
+359 {
+360 Console.WriteLine($"\n\t\t\t\t\t\t\t\t{title}\n");
+361 }
+362 private static void PrintDateOfMakingInvoice(DateTime? dateOfMakingInvoice)
+363 {
+364 if (dateOfMakingInvoice != null)
+26
+365 {
+366 Console.WriteLine($"\n\t\t\t\t\t\t\t\t{dateOfMakingInvoice}\n");
+367 }
+368 }
+369 private static void PrintGoodsTable(Warehouse goods, List<Good>? totalSumOfGood)
+370 {
+371 int counter = 1;
+372 var table = CreateConsoleTable(goods, counter, totalSumOfGood);
+373
+374 Console.Write(table.ToString());
+375 Console.WriteLine($"\n\n Total sum: {CalculateTotalSum(totalSumOfGood == null ? goods : totalSumOfGood!)} uah\n");
+376 }
+377 private static ConsoleTable CreateConsoleTable(Warehouse goods, int counter, List<Good>? totalSumOfGood)
+378 {
+379 var table = new ConsoleTable("№", "Category", "Name of a good", "Size", "Color", "Brand", "Model", "Company",
+380 "Unit of measure", "Unit of price", "Amount", "Expiry date", "Date of last delivery");
+381
+382 foreach (Good item in goods)
+383 {
+384 AddRowToTable(table, item, counter);
+385
+386 if (totalSumOfGood != null)
+387 {
+388 totalSumOfGood.Add(item);
+389 }
+390
+391 counter++;
+392 }
+27
+393
+394 return table;
+395 }
+396 private static void AddRowToTable(ConsoleTable table, Good item, int counter)
+397 {
+398 table.AddRow(
+399 counter,
+400 item.Category.ToLower(),
+401 item.NameOfGood.ToLower(),
+402 item is Clothing clothingSize ? clothingSize.Size.ToLower() : "",
+403 item is Clothing clothingColor ? clothingColor.Color.ToLower() : "",
+404 item is Clothing clothingBrand ? (clothingBrand.Brand.Substring(0, 1).ToUpper() + clothingBrand.Brand.Substring(1).ToLower()) : "",
+405 item is Electronics electronicsModel ? electronicsModel.Model : "",
+406 item is Electronics electronicsCompany ? (electronicsCompany.Company.Substring(0, 1).ToUpper() + electronicsCompany.Company.Substring(1).ToLower()) : "",
+407 item.UnitOfMeasure,
+408 $"{item.UnitPrice} uah/{item.UnitOfMeasure}",
+409 item.Amount,
+410 item is Food foodExpiryDate ? foodExpiryDate.ExpiryDate.ToShortDateString() : "",
+411 item.DateOfLastDelivery);
+412 }
+413
+414
+415
+416 private static void PrintCategoryOfGoods<T>(string[] header, Warehouse goods, string title, List<Good> totalSumOfGood, bool? printEmptyLists = null) where T : Good
+417 {
+28
+418 var table = new ConsoleTable(header);
+419
+420 int counter = 1;
+421
+422 foreach (T good in goods.OfType<T>())
+423 {
+424 if (good is Food food)
+425 {
+426 table.AddRow(
+427 counter++,
+428 food.NameOfGood.ToLower(),
+429 food.UnitOfMeasure.ToLower(),
+430 $"{food.UnitPrice} uah/{food.UnitOfMeasure}",
+431 food.Amount,
+432 food.ExpiryDate.ToShortDateString(),
+433 food.DateOfLastDelivery);
+434 totalSumOfGood.Add(food);
+435 }
+436 else if (good is Clothing clothing)
+437 {
+438 table.AddRow(
+439 counter++,
+440 clothing.NameOfGood.ToLower(),
+441 clothing.Size.ToLower(),
+442 clothing.Color.ToLower(),
+443 clothing.Brand,
+444 clothing.UnitOfMeasure.ToLower(),
+445 $"{clothing.UnitPrice} uah/{clothing.UnitOfMeasure}",
+446 clothing.Amount,
+447 clothing.DateOfLastDelivery);
+448 totalSumOfGood.Add(clothing);
+449 }
+450 else if (good is Electronics electronics)
+451 {
+452 table.AddRow(
+29
+453 counter++,
+454 electronics.NameOfGood.ToLower(),
+455 electronics.Model,
+456 electronics.Company,
+457 electronics.UnitOfMeasure.ToLower(),
+458 $"{electronics.UnitPrice} uah/{electronics.UnitOfMeasure}",
+459 electronics.Amount,
+460 electronics.DateOfLastDelivery);
+461 totalSumOfGood.Add(electronics);
+462 }
+463 }
+464 if (table.Rows.Count > 0)
+465 {
+466 Console.WriteLine($"\n\t\t\t\t\t\t{title}\n");
+467 Console.Write(table.ToString());
+468 Console.WriteLine($"\n\n Total sum: {CalculateTotalSum(totalSumOfGood == null ? goods : totalSumOfGood!)} uah");
+469 }
+470 else if (printEmptyLists == true)
+471 {
+472 PrintEmptyListMessage<T>();
+473 }
+474 }
+475
+476 private static void PrintEmptyListMessage<T>()
+477 {
+478 if (typeof(T) == typeof(Food))
+479 {
+480 Message(ConsoleColor.Red, $"\n No food goods were found.");
+481 }
+482 else if (typeof(T) == typeof(Clothing))
+483 {
+30
+484 Message(ConsoleColor.Red, $"\n No clothing goods were found.");
+485 }
+486 else if (typeof(T) == typeof(Electronics))
+487 {
+488 Message(ConsoleColor.Red, $"\n No electronic goods were found.\n");
+489 }
+490 }
+491
+492 private static void PrintGoodCategories(Warehouse allGoods, bool printCategoriesOfGoods = false)
+493 {
+494 PrintCategoryOfGoods<Food>(new string[]{"№", "Name of a good", "Unit of measure", "Unit of price", "Amount",
+495 "Expiry date", "Date of last delivery"}, allGoods, "Food", new List<Good>(), printCategoriesOfGoods);
+496
+497 PrintCategoryOfGoods<Clothing>(new string[] {
+498 "№", "Name of a good", "Size", "Color", "Brand", "Unit of measure", "Unit of price",
+499 "Amount", "Date of last delivery"}, allGoods, "Clothing", new List<Good>(), printCategoriesOfGoods);
+500
+501 PrintCategoryOfGoods<Electronics>(new string[]{ "№", "Name of a good", "Model", "Company", "Unit of measure", "Unit of price",
+502 "Amount", "Date of last delivery" }, allGoods, "Electronics", new List<Good>(), printCategoriesOfGoods);
+503
+504 }
+505
+506
+507
+508 public static void ListOfAllGoods(Warehouse allGoods)
+509 {
+31
+510 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "List of all goods"));
+511 }
+512
+513 public static void ListAfetrEditing(Warehouse allGoods)
+514 {
+515
+516 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "Edited goods"));
+517 }
+518
+519 public static void ListOfFoundGoods(Warehouse allGoods)
+520 {
+521 WayOfPrinting(allGoods, (goods) => PrintGoods<Good>(goods, "Found goods"), true);
+522 }
+523
+524
+525
+526 private static void PrintInvoice(Invoice invoice, string title)
+527 {
+528 invoice.DateOfMakingInvoice = DateTime.Now;
+529
+530 PrintGoods<Good>(invoice, $"{title} {invoice.NumberOfInvoice}", invoice.DateOfMakingInvoice);
+531 }
+532
+533 public static void PrintIncomeInvoice(Invoice invoice)
+534 {
+535 PrintInvoice(invoice, "Income invoice");
+536 }
+537
+538 public static void PrintExpenceInvoice(Invoice invoice)
+539 {
+540 PrintInvoice(invoice, "Expence invoice");
+32
+541 }
+542
+543
+544
+545 private static void PrintInvoices(BaseOfInvoices invoices, string title)//all invoices
+546 {
+547 foreach (Invoice invoice in invoices)
+548 {
+549 PrintGoods<Good>(invoice, $"{title} {invoice.NumberOfInvoice}", invoice.DateOfMakingInvoice);
+550 }
+551 }
+552
+553 public static void PrintIncomeInvoices(BaseOfInvoices incomeInvoice)
+554 {
+555 PrintInvoices(incomeInvoice, "Income invoice");
+556 }
+557
+558 public static void PrintExpenceInvoices(BaseOfInvoices expenceInvoice)
+559 {
+560 PrintInvoices(expenceInvoice, "Expence invoice");
+561 }
+562
+563
+564
+565 public static void Message(ConsoleColor color, string message)
+566 {
+567 Console.ForegroundColor = color;
+568 Console.WriteLine(message);
+569 Console.ResetColor();
+570 }
+571
+33
+572 private static string CalculateTotalSum(IEnumerable<Good> goods)
+573 {
+574 double totalSum = 0;
+575
+576 foreach (Good good in goods)
+577 {
+578 totalSum += good.UnitPrice * good.Amount;
+579 }
+580
+581 return FormatCurrency(totalSum);
+582 }
+583 private static string FormatCurrency(double amount)
+584 {
+585 return amount.ToString("#,##0.00", CultureInfo.InvariantCulture);
+586 }
+587 }
+588 }
+34
+ДОДАТОК В
+Код до та після застосування методу рефакторингу « Метод перейменування»
+592 //Код до застосування методу рефакторингу «Метод перейменування»
+593
+594 class FollowersActivity : AppCompatActivity(), OnFollowStateChangedListener {
+595 private lateinit var binding: ActivityFollowersBinding
+596 private lateinit var encryptedPreferencesManager: EncryptedPreferencesManager
+597 private lateinit var followings: List<Follower>
+598 private lateinit var followers: List<Follower>
+599 private var userId: String = ""
+600 private var username: String = ""
+601
+602 @SuppressLint("UseRequireInsteadOfGet")
+603 override fun onCreate(savedInstanceState: Bundle?) {
+604 super.onCreate(savedInstanceState)
+605 enableEdgeToEdge()
+606 setContentView(R.layout.activity_followers)
+607 ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.followersContainer)) { v, insets ->
+608 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+609 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+610 insets
+611 }
+612
+613 if (savedInstanceState == null) {
+614 val footerFragment = FooterFragment.newInstance("followers")
+615 supportFragmentManager.beginTransaction()
+616 .replace(R.id.header_container, HeaderFragment())
+35
+617 .replace(R.id.footer_container, footerFragment)
+618 .commit()
+619 }
+620
+621 binding = ActivityFollowersBinding.inflate(layoutInflater)
+622 encryptedPreferencesManager = EncryptedPreferencesManager(this)
+623 setContentView(binding.root)
+624
+625 userId = intent.getStringExtra("USER_ID") ?: ""
+626 username = intent.getStringExtra("USERNAME") ?: ""
+627
+628 setUpFragments()
+629 }
+630
+631 private fun setUpFragments(){
+632 binding.noFollowingsContainer.visibility = View.GONE
+633 binding.noFollowersContainer.visibility = View.GONE
+634
+635 val fragmentManager: FragmentManager = supportFragmentManager
+636 val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
+637
+638 val userName = encryptedPreferencesManager.getData("username")
+639 val targetUsername = if (username.isNotEmpty() && username != userName) username else userName
+640 binding.tvUsername.text = "@${targetUsername}"
+641
+642 val followersFragment = UnderlinedTextFragment()
+643 val followedFragment = UnderlinedTextFragment()
+644
+645 followersFragment.apply {
+646 setText("Followers")
+647 isUnderlined(true)
+36
+648 setAction {
+649 this.isUnderlined(true)
+650 followedFragment.isUnderlined(false)
+651 binding.followers.visibility = View.VISIBLE
+652 binding.followings.visibility = View.GONE
+653 binding.noFollowingsContainer.visibility = View.GONE
+654 if(followers.isEmpty()){
+655 binding.noFollowersContainer.visibility = View.VISIBLE
+656 } else {
+657 binding.noFollowersContainer.visibility = View.GONE
+658 }
+659 }
+660 }
+661 fragmentTransaction.add(R.id.tvFollowers, followersFragment)
+662
+663 followedFragment.apply {
+664 setText("Followed")
+665 isUnderlined(false)
+666 setAction {
+667 this.isUnderlined(true)
+668 followersFragment.isUnderlined(false)
+669 binding.followers.visibility = View.GONE
+670 binding.followings.visibility = View.VISIBLE
+671 binding.noFollowersContainer.visibility = View.GONE
+672 if(followings.isEmpty()){
+673 binding.noFollowingsContainer.visibility = View.VISIBLE
+674 } else {
+675 binding.noFollowingsContainer.visibility = View.GONE
+676 }
+37
+677 }
+678 }
+679 fragmentTransaction.add(R.id.tvFollowed, followedFragment)
+680
+681 if(followersFragment.isUnderlined){
+682 binding.followers.visibility = View.VISIBLE
+683 binding.followings.visibility = View.GONE
+684 } else {
+685 binding.followers.visibility = View.GONE
+686 binding.followings.visibility = View.VISIBLE
+687 }
+688
+689 fragmentTransaction.commit()
+690 }
+691
+692 private fun followings(targetUserId: String) {
+693 val currentUserId = encryptedPreferencesManager.getData("user_id")
+694 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+695
+696 RetrofitClient.getInstance(applicationContext).userAPI.getFollowings(finalUserId)
+697 .enqueue(object : Callback<List<Follower>> {
+698 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+699 if (response.isSuccessful) {
+700 val data = response.body()
+701 if (data != null) {
+702 followings = data
+703 displayFollowings(followings)
+704 Log.i("GetFollowings", "Successfully retrieved: $followings")
+705 } else {
+38
+706 Log.e("GetFollowings", "Response body is null")
+707 }
+708 } else {
+709 Log.e("GetFollowings", "Failed with error: ${response.errorBody()?.string()}")
+710 }
+711 }
+712
+713 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+714 Log.e("GetFollowings", "Request failed: ${t.message}")
+715 }
+716 })
+717 }
+718
+719 private fun followers(targetUserId: String) {
+720 val currentUserId = encryptedPreferencesManager.getData("user_id")
+721 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+722
+723 RetrofitClient.getInstance(applicationContext).userAPI.getFollowers(finalUserId)
+724 .enqueue(object : Callback<List<Follower>> {
+725 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+726 if (response.isSuccessful) {
+727 val data = response.body()
+728 if (data != null) {
+729 followers = data
+730 displayFollowers(followers)
+731 Log.i("GetFollowers", "Successfully retrieved: $followers")
+39
+732 } else {
+733 Log.e("GetFollowers", "Response body is null")
+734 }
+735 } else {
+736 Log.e("GetFollowers", "Failed with error: ${response.errorBody()?.string()}")
+737 }
+738 }
+739
+740 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+741 Log.e("GetFollowers", "Request failed: ${t.message}")
+742 }
+743 })
+744 }
+745
+746 private fun show1(followings: List<Follower>) {
+747 val container = findViewById<LinearLayout>(R.id.followings_container)
+748 container.removeAllViews()
+749
+750 val fragmentManager = supportFragmentManager
+751
+752 for (follower in followings) {
+753 val tag = "follower_${follower._id}"
+754 val fragment = FollowerFragment.newInstance(
+755 username = follower.username,
+756 avatarUrl = follower.avatar,
+757 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+758 targetUserId = follower._id
+759 )
+760 isFollowing(userId, follower._id) { isFollowing ->
+40
+761 fragment.setFollowState(isFollowing)
+762 fragmentManager.beginTransaction()
+763 .add(container.id, fragment, tag)
+764 .commit()
+765 }
+766 }
+767 }
+768
+769 private fun show2(followers: List<Follower>) {
+770 val container = findViewById<LinearLayout>(R.id.followers_container)
+771 container.removeAllViews()
+772
+773 val fragmentManager = supportFragmentManager
+774
+775 for (follower in followers) {
+776 val tag = "follower_${follower._id}"
+777 val fragment = FollowerFragment.newInstance(
+778 username = follower.username,
+779 avatarUrl = follower.avatar,
+780 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+781 targetUserId = follower._id
+782 )
+783
+784 isFollowing(userId, follower._id) { isFollowing ->
+785 fragment.setFollowState(isFollowing)
+786 fragmentManager.beginTransaction()
+787 .add(container.id, fragment, tag)
+788 .commit()
+789 }
+790 }
+791 }
+792
+41
+793 private fun state(id: String, followerId: String, callback: (Boolean) -> Unit) {
+794 val userId = encryptedPreferencesManager.getData("user_id")
+795
+796 RetrofitClient.getInstance(applicationContext).userAPI.isFollowing(userId, followerId)
+797 .enqueue(object : Callback<Boolean> {
+798 override fun onResponse(call: Call<Boolean>, response: Response<Boolean>) {
+799 if (response.isSuccessful) {
+800 val isFollowingResponse = response.body()
+801 if (isFollowingResponse != null) {
+802 callback(isFollowingResponse)
+803 Log.i("IsFollowing", "IsFollowing successfully retrieved: $isFollowingResponse")
+804 } else {
+805 Log.e("IsFollowing", "Response body is null")
+806 }
+807 } else {
+808 Log.e("IsFollowing", "Failed with error: ${response.errorBody()?.string()}")
+809 callback(false)
+810 }
+811 }
+812
+813 override fun onFailure(call: Call<Boolean>, t: Throwable) {
+814 Log.e("IsFollowing", "Request failed: ${t.message}")
+815 callback(false)
+816 }
+817 })
+818 }
+42
+819
+820 override fun onFollowStateChanged() {
+821 super.onResume()
+822 getFollowings(userId)
+823 getFollowers(userId)
+824 }
+825
+826 override fun onResume() {
+827 super.onResume()
+828
+829 getFollowings(userId)
+830 getFollowers(userId)
+831 }
+832
+833 }
+834
+835
+836 //Код після застосування методу рефакторингу «Метод перейменування»
+837
+838 class FollowersActivity : AppCompatActivity(), OnFollowStateChangedListener {
+839 private lateinit var binding: ActivityFollowersBinding
+840 private lateinit var encryptedPreferencesManager: EncryptedPreferencesManager
+841 private lateinit var followings: List<Follower>
+842 private lateinit var followers: List<Follower>
+843 private var userId: String = ""
+844 private var username: String = ""
+845
+846 @SuppressLint("UseRequireInsteadOfGet")
+847 override fun onCreate(savedInstanceState: Bundle?) {
+848 super.onCreate(savedInstanceState)
+849 enableEdgeToEdge()
+850 setContentView(R.layout.activity_followers)
+43
+851 ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.followersContainer)) { v, insets ->
+852 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+853 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+854 insets
+855 }
+856
+857 if (savedInstanceState == null) {
+858 val footerFragment = FooterFragment.newInstance("followers")
+859 supportFragmentManager.beginTransaction()
+860 .replace(R.id.header_container, HeaderFragment())
+861 .replace(R.id.footer_container, footerFragment)
+862 .commit()
+863 }
+864
+865 binding = ActivityFollowersBinding.inflate(layoutInflater)
+866 encryptedPreferencesManager = EncryptedPreferencesManager(this)
+867 setContentView(binding.root)
+868
+869 userId = intent.getStringExtra("USER_ID") ?: ""
+870 username = intent.getStringExtra("USERNAME") ?: ""
+871
+872 setUpFragments()
+873 }
+874
+875 private fun setUpFragments(){
+876 binding.noFollowingsContainer.visibility = View.GONE
+877 binding.noFollowersContainer.visibility = View.GONE
+878
+879 val fragmentManager: FragmentManager = supportFragmentManager
+44
+880 val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
+881
+882 val userName = encryptedPreferencesManager.getData("username")
+883 val targetUsername = if (username.isNotEmpty() && username != userName) username else userName
+884 binding.tvUsername.text = "@${targetUsername}"
+885
+886 val followersFragment = UnderlinedTextFragment()
+887 val followedFragment = UnderlinedTextFragment()
+888
+889 followersFragment.apply {
+890 setText("Followers")
+891 isUnderlined(true)
+892 setAction {
+893 this.isUnderlined(true)
+894 followedFragment.isUnderlined(false)
+895 binding.followers.visibility = View.VISIBLE
+896 binding.followings.visibility = View.GONE
+897 binding.noFollowingsContainer.visibility = View.GONE
+898 if(followers.isEmpty()){
+899 binding.noFollowersContainer.visibility = View.VISIBLE
+900 } else {
+901 binding.noFollowersContainer.visibility = View.GONE
+902 }
+903 }
+904 }
+905 fragmentTransaction.add(R.id.tvFollowers, followersFragment)
+906
+907 followedFragment.apply {
+908 setText("Followed")
+45
+909 isUnderlined(false)
+910 setAction {
+911 this.isUnderlined(true)
+912 followersFragment.isUnderlined(false)
+913 binding.followers.visibility = View.GONE
+914 binding.followings.visibility = View.VISIBLE
+915 binding.noFollowersContainer.visibility = View.GONE
+916 if(followings.isEmpty()){
+917 binding.noFollowingsContainer.visibility = View.VISIBLE
+918 } else {
+919 binding.noFollowingsContainer.visibility = View.GONE
+920 }
+921 }
+922 }
+923 fragmentTransaction.add(R.id.tvFollowed, followedFragment)
+924
+925 if(followersFragment.isUnderlined){
+926 binding.followers.visibility = View.VISIBLE
+927 binding.followings.visibility = View.GONE
+928 } else {
+929 binding.followers.visibility = View.GONE
+930 binding.followings.visibility = View.VISIBLE
+931 }
+932
+933 fragmentTransaction.commit()
+934 }
+935
+936 private fun getFollowings(targetUserId: String) {
+937 val currentUserId = encryptedPreferencesManager.getData("user_id")
+938 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+939
+46
+940 RetrofitClient.getInstance(applicationContext).userAPI.getFollowings(finalUserId)
+941 .enqueue(object : Callback<List<Follower>> {
+942 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+943 if (response.isSuccessful) {
+944 val data = response.body()
+945 if (data != null) {
+946 followings = data
+947 displayFollowings(followings)
+948 Log.i("GetFollowings", "Successfully retrieved: $followings")
+949 } else {
+950 Log.e("GetFollowings", "Response body is null")
+951 }
+952 } else {
+953 Log.e("GetFollowings", "Failed with error: ${response.errorBody()?.string()}")
+954 }
+955 }
+956
+957 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+958 Log.e("GetFollowings", "Request failed: ${t.message}")
+959 }
+960 })
+961 }
+962
+963 private fun getFollowers(targetUserId: String) {
+964 val currentUserId = encryptedPreferencesManager.getData("user_id")
+965 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+47
+966
+967 RetrofitClient.getInstance(applicationContext).userAPI.getFollowers(finalUserId)
+968 .enqueue(object : Callback<List<Follower>> {
+969 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+970 if (response.isSuccessful) {
+971 val data = response.body()
+972 if (data != null) {
+973 followers = data
+974 displayFollowers(followers)
+975 Log.i("GetFollowers", "Successfully retrieved: $followers")
+976 } else {
+977 Log.e("GetFollowers", "Response body is null")
+978 }
+979 } else {
+980 Log.e("GetFollowers", "Failed with error: ${response.errorBody()?.string()}")
+981 }
+982 }
+983
+984 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+985 Log.e("GetFollowers", "Request failed: ${t.message}")
+986 }
+987 })
+988 }
+989
+990 private fun displayFollowings(followings: List<Follower>) {
+991 val container = findViewById<LinearLayout>(R.id.followings_container)
+992 container.removeAllViews()
+48
+993
+994 val fragmentManager = supportFragmentManager
+995
+996 for (follower in followings) {
+997 val tag = "follower_${follower._id}"
+998 val fragment = FollowerFragment.newInstance(
+999 username = follower.username,
+1000 avatarUrl = follower.avatar,
+1001 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1002 targetUserId = follower._id
+1003 )
+1004 isFollowing(userId, follower._id) { isFollowing ->
+1005 fragment.setFollowState(isFollowing)
+1006 fragmentManager.beginTransaction()
+1007 .add(container.id, fragment, tag)
+1008 .commit()
+1009 }
+1010 }
+1011 }
+1012
+1013 private fun displayFollowers(followers: List<Follower>) {
+1014 val container = findViewById<LinearLayout>(R.id.followers_container)
+1015 container.removeAllViews()
+1016
+1017 val fragmentManager = supportFragmentManager
+1018
+1019 for (follower in followers) {
+1020 val tag = "follower_${follower._id}"
+1021 val fragment = FollowerFragment.newInstance(
+1022 username = follower.username,
+1023 avatarUrl = follower.avatar,
+49
+1024 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1025 targetUserId = follower._id
+1026 )
+1027
+1028 isFollowing(userId, follower._id) { isFollowing ->
+1029 fragment.setFollowState(isFollowing)
+1030 fragmentManager.beginTransaction()
+1031 .add(container.id, fragment, tag)
+1032 .commit()
+1033 }
+1034 }
+1035 }
+1036
+1037 private fun isFollowing(id: String, followerId: String, callback: (Boolean) -> Unit) {
+1038 val userId = encryptedPreferencesManager.getData("user_id")
+1039
+1040 RetrofitClient.getInstance(applicationContext).userAPI.isFollowing(userId, followerId)
+1041 .enqueue(object : Callback<Boolean> {
+1042 override fun onResponse(call: Call<Boolean>, response: Response<Boolean>) {
+1043 if (response.isSuccessful) {
+1044 val isFollowingResponse = response.body()
+1045 if (isFollowingResponse != null) {
+1046 callback(isFollowingResponse)
+1047 Log.i("IsFollowing", "IsFollowing successfully retrieved: $isFollowingResponse")
+1048 } else {
+1049 Log.e("IsFollowing", "Response body is null")
+1050 }
+50
+1051 } else {
+1052 Log.e("IsFollowing", "Failed with error: ${response.errorBody()?.string()}")
+1053 callback(false)
+1054 }
+1055 }
+1056
+1057 override fun onFailure(call: Call<Boolean>, t: Throwable) {
+1058 Log.e("IsFollowing", "Request failed: ${t.message}")
+1059 callback(false)
+1060 }
+1061 })
+1062 }
+1063
+1064 override fun onFollowStateChanged() {
+1065 super.onResume()
+1066 getFollowings(userId)
+1067 getFollowers(userId)
+1068 }
+1069
+1070 override fun onResume() {
+1071 super.onResume()
+1072
+1073 getFollowings(userId)
+1074 getFollowers(userId)
+1075 }
+1076
+1077 }
+51
+ДОДАТОК Г
+Код до та після застосування методу рефакторингу « Видалення параметру»
+1079 //Код до застосування методу рефакторингу «Видалення параметру»
+1080
+1081 class FollowersActivity : AppCompatActivity(), OnFollowStateChangedListener {
+1082 private lateinit var binding: ActivityFollowersBinding
+1083 private lateinit var encryptedPreferencesManager: EncryptedPreferencesManager
+1084 private lateinit var followings: List<Follower>
+1085 private lateinit var followers: List<Follower>
+1086 private var userId: String = ""
+1087 private var username: String = ""
+1088
+1089 @SuppressLint("UseRequireInsteadOfGet")
+1090 override fun onCreate(savedInstanceState: Bundle?) {
+1091 super.onCreate(savedInstanceState)
+1092 enableEdgeToEdge()
+1093 setContentView(R.layout.activity_followers)
+1094 ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.followersContainer)) { v, insets ->
+1095 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+1096 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+1097 insets
+1098 }
+1099
+1100 if (savedInstanceState == null) {
+1101 val footerFragment = FooterFragment.newInstance("followers")
+1102 supportFragmentManager.beginTransaction()
+1103 .replace(R.id.header_container, HeaderFragment())
+52
+1104 .replace(R.id.footer_container, footerFragment)
+1105 .commit()
+1106 }
+1107
+1108 binding = ActivityFollowersBinding.inflate(layoutInflater)
+1109 encryptedPreferencesManager = EncryptedPreferencesManager(this)
+1110 setContentView(binding.root)
+1111
+1112 userId = intent.getStringExtra("USER_ID") ?: ""
+1113 username = intent.getStringExtra("USERNAME") ?: ""
+1114
+1115 setUpFragments()
+1116 }
+1117
+1118 private fun setUpFragments(){
+1119 binding.noFollowingsContainer.visibility = View.GONE
+1120 binding.noFollowersContainer.visibility = View.GONE
+1121
+1122 val fragmentManager: FragmentManager = supportFragmentManager
+1123 val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
+1124
+1125 val userName = encryptedPreferencesManager.getData("username")
+1126 val targetUsername = if (username.isNotEmpty() && username != userName) username else userName
+1127 binding.tvUsername.text = "@${targetUsername}"
+1128
+1129 val followersFragment = UnderlinedTextFragment()
+1130 val followedFragment = UnderlinedTextFragment()
+1131
+1132 followersFragment.apply {
+1133 setText("Followers")
+53
+1134 isUnderlined(true)
+1135 setAction {
+1136 this.isUnderlined(true)
+1137 followedFragment.isUnderlined(false)
+1138 binding.followers.visibility = View.VISIBLE
+1139 binding.followings.visibility = View.GONE
+1140 binding.noFollowingsContainer.visibility = View.GONE
+1141 if(followers.isEmpty()){
+1142 binding.noFollowersContainer.visibility = View.VISIBLE
+1143 } else {
+1144 binding.noFollowersContainer.visibility = View.GONE
+1145 }
+1146 }
+1147 }
+1148 fragmentTransaction.add(R.id.tvFollowers, followersFragment)
+1149
+1150 followedFragment.apply {
+1151 setText("Followed")
+1152 isUnderlined(false)
+1153 setAction {
+1154 this.isUnderlined(true)
+1155 followersFragment.isUnderlined(false)
+1156 binding.followers.visibility = View.GONE
+1157 binding.followings.visibility = View.VISIBLE
+1158 binding.noFollowersContainer.visibility = View.GONE
+1159 if(followings.isEmpty()){
+1160 binding.noFollowingsContainer.visibility = View.VISIBLE
+1161 } else {
+1162 binding.noFollowingsContainer.visibility = View.GONE
+54
+1163 }
+1164 }
+1165 }
+1166 fragmentTransaction.add(R.id.tvFollowed, followedFragment)
+1167
+1168 if(followersFragment.isUnderlined){
+1169 binding.followers.visibility = View.VISIBLE
+1170 binding.followings.visibility = View.GONE
+1171 } else {
+1172 binding.followers.visibility = View.GONE
+1173 binding.followings.visibility = View.VISIBLE
+1174 }
+1175
+1176 fragmentTransaction.commit()
+1177 }
+1178
+1179 private fun getFollowings (userId: String, id: String) {
+1180 val targetId= if (id.isNotEmpty() && id != userId) id else userId
+1181
+1182 RetrofitClient.getInstance(applicationContext).userAPI.getFollowings(targetId)
+1183 .enqueue(object : Callback<List<Follower>> {
+1184 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+1185 if (response.isSuccessful) {
+1186 val data = response.body()
+1187 if (data != null) {
+1188 followings = data
+1189 displayFollowings(followings)
+1190 Log.i("GetFollowings", "Successfully retrieved: $followings")
+1191 } else {
+55
+1192 Log.e("GetFollowings", "Response body is null")
+1193 }
+1194 } else {
+1195 Log.e("GetFollowings", "Failed with error: ${response.errorBody()?.string()}")
+1196 }
+1197 }
+1198
+1199 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+1200 Log.e("GetFollowings", "Request failed: ${t.message}")
+1201 }
+1202 })
+1203 }
+1204
+1205 private fun getFollowers (userId: String, id: String) {
+1206 val targetId= if (id.isNotEmpty() && id != userId) id else userId
+1207
+1208 RetrofitClient.getInstance(applicationContext).userAPI.getFollowers(targetId)
+1209 .enqueue(object : Callback<List<Follower>> {
+1210 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+1211 if (response.isSuccessful) {
+1212 val data = response.body()
+1213 if (data != null) {
+1214 followers = data
+1215 displayFollowers(followers)
+1216 Log.i("GetFollowers", "Successfully retrieved: $followers")
+1217 } else {
+56
+1218 Log.e("GetFollowers", "Response body is null")
+1219 }
+1220 } else {
+1221 Log.e("GetFollowers", "Failed with error: ${response.errorBody()?.string()}")
+1222 }
+1223 }
+1224
+1225 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+1226 Log.e("GetFollowers", "Request failed: ${t.message}")
+1227 }
+1228 })
+1229 }
+1230
+1231 private fun displayFollowings(followings: List<Follower>) {
+1232 val container = findViewById<LinearLayout>(R.id.followings_container)
+1233 container.removeAllViews()
+1234
+1235 val fragmentManager = supportFragmentManager
+1236
+1237 for (follower in followings) {
+1238 val tag = "follower_${follower._id}"
+1239 val fragment = FollowerFragment.newInstance(
+1240 username = follower.username,
+1241 avatarUrl = follower.avatar,
+1242 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1243 targetUserId = follower._id
+1244 )
+1245 isFollowing(userId, follower._id) { isFollowing ->
+1246 fragment.setFollowState(isFollowing)
+57
+1247 fragmentManager.beginTransaction()
+1248 .add(container.id, fragment, tag)
+1249 .commit()
+1250 }
+1251 }
+1252 }
+1253
+1254 private fun displayFollowers(followers: List<Follower>) {
+1255 val container = findViewById<LinearLayout>(R.id.followers_container)
+1256 container.removeAllViews()
+1257
+1258 val fragmentManager = supportFragmentManager
+1259
+1260 for (follower in followers) {
+1261 val tag = "follower_${follower._id}"
+1262 val fragment = FollowerFragment.newInstance(
+1263 username = follower.username,
+1264 avatarUrl = follower.avatar,
+1265 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1266 targetUserId = follower._id
+1267 )
+1268
+1269 isFollowing(userId, follower._id) { isFollowing ->
+1270 fragment.setFollowState(isFollowing)
+1271 fragmentManager.beginTransaction()
+1272 .add(container.id, fragment, tag)
+1273 .commit()
+1274 }
+1275 }
+1276 }
+1277
+1278 private fun isFollowing(id: String, followerId: String, callback: (Boolean) -> Unit) {
+58
+1279 val userId = encryptedPreferencesManager.getData("user_id")
+1280
+1281 RetrofitClient.getInstance(applicationContext).userAPI.isFollowing(userId, followerId)
+1282 .enqueue(object : Callback<Boolean> {
+1283 override fun onResponse(call: Call<Boolean>, response: Response<Boolean>) {
+1284 if (response.isSuccessful) {
+1285 val isFollowingResponse = response.body()
+1286 if (isFollowingResponse != null) {
+1287 callback(isFollowingResponse)
+1288 Log.i("IsFollowing", "IsFollowing successfully retrieved: $isFollowingResponse")
+1289 } else {
+1290 Log.e("IsFollowing", "Response body is null")
+1291 }
+1292 } else {
+1293 Log.e("IsFollowing", "Failed with error: ${response.errorBody()?.string()}")
+1294 callback(false)
+1295 }
+1296 }
+1297
+1298 override fun onFailure(call: Call<Boolean>, t: Throwable) {
+1299 Log.e("IsFollowing", "Request failed: ${t.message}")
+1300 callback(false)
+1301 }
+1302 })
+1303 }
+1304
+1305 override fun onFollowStateChanged() {
+59
+1306 super.onResume()
+1307 getFollowings(userId)
+1308 getFollowers(userId)
+1309 }
+1310
+1311 override fun onResume() {
+1312 super.onResume()
+1313
+1314 getFollowings(userId)
+1315 getFollowers(userId)
+1316 }
+1317
+1318 }
+1319
+1320
+1321 //Код піля застосування методу рефакторингу «Видалення параметру»
+1322
+1323 class FollowersActivity : AppCompatActivity(), OnFollowStateChangedListener {
+1324 private lateinit var binding: ActivityFollowersBinding
+1325 private lateinit var encryptedPreferencesManager: EncryptedPreferencesManager
+1326 private lateinit var followings: List<Follower>
+1327 private lateinit var followers: List<Follower>
+1328 private var userId: String = ""
+1329 private var username: String = ""
+1330
+1331 @SuppressLint("UseRequireInsteadOfGet")
+1332 override fun onCreate(savedInstanceState: Bundle?) {
+1333 super.onCreate(savedInstanceState)
+1334 enableEdgeToEdge()
+1335 setContentView(R.layout.activity_followers)
+1336 ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.followersContainer)) { v, insets ->
+60
+1337 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+1338 v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+1339 insets
+1340 }
+1341
+1342 if (savedInstanceState == null) {
+1343 val footerFragment = FooterFragment.newInstance("followers")
+1344 supportFragmentManager.beginTransaction()
+1345 .replace(R.id.header_container, HeaderFragment())
+1346 .replace(R.id.footer_container, footerFragment)
+1347 .commit()
+1348 }
+1349
+1350 binding = ActivityFollowersBinding.inflate(layoutInflater)
+1351 encryptedPreferencesManager = EncryptedPreferencesManager(this)
+1352 setContentView(binding.root)
+1353
+1354 userId = intent.getStringExtra("USER_ID") ?: ""
+1355 username = intent.getStringExtra("USERNAME") ?: ""
+1356
+1357 setUpFragments()
+1358 }
+1359
+1360 private fun setUpFragments(){
+1361 binding.noFollowingsContainer.visibility = View.GONE
+1362 binding.noFollowersContainer.visibility = View.GONE
+1363
+1364 val fragmentManager: FragmentManager = supportFragmentManager
+1365 val fragmentTransaction: FragmentTransaction = fragmentManager.beginTransaction()
+61
+1366
+1367 val userName = encryptedPreferencesManager.getData("username")
+1368 val targetUsername = if (username.isNotEmpty() && username != userName) username else userName
+1369 binding.tvUsername.text = "@${targetUsername}"
+1370
+1371 val followersFragment = UnderlinedTextFragment()
+1372 val followedFragment = UnderlinedTextFragment()
+1373
+1374 followersFragment.apply {
+1375 setText("Followers")
+1376 isUnderlined(true)
+1377 setAction {
+1378 this.isUnderlined(true)
+1379 followedFragment.isUnderlined(false)
+1380 binding.followers.visibility = View.VISIBLE
+1381 binding.followings.visibility = View.GONE
+1382 binding.noFollowingsContainer.visibility = View.GONE
+1383 if(followers.isEmpty()){
+1384 binding.noFollowersContainer.visibility = View.VISIBLE
+1385 } else {
+1386 binding.noFollowersContainer.visibility = View.GONE
+1387 }
+1388 }
+1389 }
+1390 fragmentTransaction.add(R.id.tvFollowers, followersFragment)
+1391
+1392 followedFragment.apply {
+1393 setText("Followed")
+1394 isUnderlined(false)
+1395 setAction {
+62
+1396 this.isUnderlined(true)
+1397 followersFragment.isUnderlined(false)
+1398 binding.followers.visibility = View.GONE
+1399 binding.followings.visibility = View.VISIBLE
+1400 binding.noFollowersContainer.visibility = View.GONE
+1401 if(followings.isEmpty()){
+1402 binding.noFollowingsContainer.visibility = View.VISIBLE
+1403 } else {
+1404 binding.noFollowingsContainer.visibility = View.GONE
+1405 }
+1406 }
+1407 }
+1408 fragmentTransaction.add(R.id.tvFollowed, followedFragment)
+1409
+1410 if(followersFragment.isUnderlined){
+1411 binding.followers.visibility = View.VISIBLE
+1412 binding.followings.visibility = View.GONE
+1413 } else {
+1414 binding.followers.visibility = View.GONE
+1415 binding.followings.visibility = View.VISIBLE
+1416 }
+1417
+1418 fragmentTransaction.commit()
+1419 }
+1420
+1421 private fun getFollowings(targetUserId: String) {
+1422 val currentUserId = encryptedPreferencesManager.getData("user_id")
+1423 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+1424
+63
+1425 RetrofitClient.getInstance(applicationContext).userAPI.getFollowings(finalUserId)
+1426 .enqueue(object : Callback<List<Follower>> {
+1427 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+1428 if (response.isSuccessful) {
+1429 val data = response.body()
+1430 if (data != null) {
+1431 followings = data
+1432 displayFollowings(followings)
+1433 Log.i("GetFollowings", "Successfully retrieved: $followings")
+1434 } else {
+1435 Log.e("GetFollowings", "Response body is null")
+1436 }
+1437 } else {
+1438 Log.e("GetFollowings", "Failed with error: ${response.errorBody()?.string()}")
+1439 }
+1440 }
+1441
+1442 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+1443 Log.e("GetFollowings", "Request failed: ${t.message}")
+1444 }
+1445 })
+1446 }
+1447
+1448 private fun getFollowers(targetUserId: String) {
+1449 val currentUserId = encryptedPreferencesManager.getData("user_id")
+1450 val finalUserId = if (targetUserId.isNotEmpty() && targetUserId != currentUserId) targetUserId else currentUserId
+64
+1451
+1452 RetrofitClient.getInstance(applicationContext).userAPI.getFollowers(finalUserId)
+1453 .enqueue(object : Callback<List<Follower>> {
+1454 override fun onResponse(call: Call<List<Follower>>, response: Response<List<Follower>>) {
+1455 if (response.isSuccessful) {
+1456 val data = response.body()
+1457 if (data != null) {
+1458 followers = data
+1459 displayFollowers(followers)
+1460 Log.i("GetFollowers", "Successfully retrieved: $followers")
+1461 } else {
+1462 Log.e("GetFollowers", "Response body is null")
+1463 }
+1464 } else {
+1465 Log.e("GetFollowers", "Failed with error: ${response.errorBody()?.string()}")
+1466 }
+1467 }
+1468
+1469 override fun onFailure(call: Call<List<Follower>>, t: Throwable) {
+1470 Log.e("GetFollowers", "Request failed: ${t.message}")
+1471 }
+1472 })
+1473 }
+1474
+1475 private fun displayFollowings(followings: List<Follower>) {
+1476 val container = findViewById<LinearLayout>(R.id.followings_container)
+1477 container.removeAllViews()
+65
+1478
+1479 val fragmentManager = supportFragmentManager
+1480
+1481 for (follower in followings) {
+1482 val tag = "follower_${follower._id}"
+1483 val fragment = FollowerFragment.newInstance(
+1484 username = follower.username,
+1485 avatarUrl = follower.avatar,
+1486 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1487 targetUserId = follower._id
+1488 )
+1489 isFollowing(userId, follower._id) { isFollowing ->
+1490 fragment.setFollowState(isFollowing)
+1491 fragmentManager.beginTransaction()
+1492 .add(container.id, fragment, tag)
+1493 .commit()
+1494 }
+1495 }
+1496 }
+1497
+1498 private fun displayFollowers(followers: List<Follower>) {
+1499 val container = findViewById<LinearLayout>(R.id.followers_container)
+1500 container.removeAllViews()
+1501
+1502 val fragmentManager = supportFragmentManager
+1503
+1504 for (follower in followers) {
+1505 val tag = "follower_${follower._id}"
+1506 val fragment = FollowerFragment.newInstance(
+1507 username = follower.username,
+1508 avatarUrl = follower.avatar,
+66
+1509 userId = if (userId.isNotEmpty() && userId != encryptedPreferencesManager.getData("user_id")) userId else encryptedPreferencesManager.getData("user_id"),
+1510 targetUserId = follower._id
+1511 )
+1512
+1513 isFollowing(userId, follower._id) { isFollowing ->
+1514 fragment.setFollowState(isFollowing)
+1515 fragmentManager.beginTransaction()
+1516 .add(container.id, fragment, tag)
+1517 .commit()
+1518 }
+1519 }
+1520 }
+1521
+1522 private fun isFollowing(id: String, followerId: String, callback: (Boolean) -> Unit) {
+1523 val userId = encryptedPreferencesManager.getData("user_id")
+1524
+1525 RetrofitClient.getInstance(applicationContext).userAPI.isFollowing(userId, followerId)
+1526 .enqueue(object : Callback<Boolean> {
+1527 override fun onResponse(call: Call<Boolean>, response: Response<Boolean>) {
+1528 if (response.isSuccessful) {
+1529 val isFollowingResponse = response.body()
+1530 if (isFollowingResponse != null) {
+1531 callback(isFollowingResponse)
+1532 Log.i("IsFollowing", "IsFollowing successfully retrieved: $isFollowingResponse")
+1533 } else {
+1534 Log.e("IsFollowing", "Response body is null")
+1535 }
+67
+1536 } else {
+1537 Log.e("IsFollowing", "Failed with error: ${response.errorBody()?.string()}")
+1538 callback(false)
+1539 }
+1540 }
+1541
+1542 override fun onFailure(call: Call<Boolean>, t: Throwable) {
+1543 Log.e("IsFollowing", "Request failed: ${t.message}")
+1544 callback(false)
+1545 }
+1546 })
+1547 }
+1548
+1549 override fun onFollowStateChanged() {
+1550 super.onResume()
+1551 getFollowings(userId)
+1552 getFollowers(userId)
+1553 }
+1554
+1555 override fun onResume() {
+1556 super.onResume()
+1557
+1558 getFollowings(userId)
+1559 getFollowers(userId)
+1560 }
+1561
+1562 }
