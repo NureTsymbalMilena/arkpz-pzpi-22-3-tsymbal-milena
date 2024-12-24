@@ -1,0 +1,1889 @@
+1
+Харківський національний університет радіоелектроніки
+Факультет комп'ютерних наук
+Катедра програмної інженерії
+ЗВІТ
+до лабораторної роботи №2
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «РОЗРОБКА БАЗИ ДАНИХ ДЛЯ
+СЕРВЕРНОЇ ЧАСТИНИ ПРОГРАМНОЇ СИСТЕМИ ТА ПРИКЛАДНОГО ПРОГРАМНОГО ІНТЕРФЕЙСУ»
+Виконала
+ст. гр. ПЗПІ-22-3
+Цимбал Мілена Русланівна
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+Харків 2024
+2
+1 МЕТА
+Розробити базу даних для серверної частини та прикладного програмного інтерфейсу для програмної системи моніторингу знаходження людей у приміщеннях та фіксації контактів.
+2 ХІД РОБОТИ
+При розробці серверної частини програмної системи для моніторингу перебування людей у приміщеннях та фіксації їх контактів було прийнято низку рішень, спрямованих на забезпечення масштабованості, надійності та продуктивності системи. Основою архітектури обрано трирівневу архітектуру з окремим шаром моделей, яка забезпечує чітке розмежування відповідальностей між компонентами, спрощує розвиток і підтримку проєкту, а також дозволяє масштабувати систему залежно від навантаження.
+Для опису взаємодії користувачів із системою були створені діаграми прецедентів, які детально демонструють основні сценарії використання системи. Ці діаграми наведено в додатку А. Крім того, розроблено ER-діаграму, яка описує ключові сутності та їх зв’язки, що забезпечує ефективну структуру бази даних. ER-діаграма представлена у додатку Б. Також було створено детальну схему структури бази даних, яка описує таблиці, ключі, зв’язки та обмеження між ними. Цю схему можна знайти у додатку В.
+Для захисту доступу до системи реалізовано механізм авторизації на основі JWT-токенів. Цей підхід забезпечує безпечне зберігання інформації про автентифікацію та дозволяє ефективно керувати доступом до ресурсів системи.
+Серверна частина розроблена мовою програмування C# із використанням ASP.NET Web API, що дозволяє створювати RESTful API для взаємодії клієнтської частини з сервером. Для роботи з базою даних використовувалася ORM Entity Framework, яка спрощує виконання операцій із
+3
+даними, автоматично перетворюючи об'єкти в таблиці бази даних. Приклади коду, що демонструють логіку роботи з базою даних та взаємодію серверної частини з клієнтськими застосунками, наведені у додатку Г.
+Основною системою керування базами даних обрано Microsoft SQL Server, яка є потужним і надійним інструментом для зберігання великих обсягів даних, забезпечує високу продуктивність і підтримує складні SQL-запити.
+У межах проєкту також розроблено детальну специфікацію API, що описує всі доступні програмні інтерфейси серверної частини. Вона включає методи, параметри запитів, структуру вхідних і вихідних даних, а також можливі статуси відповідей. Ця специфікація спрощує інтеграцію клієнтських застосунків із сервером і забезпечує можливість легкого розширення функціоналу системи. Специфікація API доступна у додатку Д.
+Демонстрація функціоналу системи доступна за посиланням, наведеним у додатку Е.
+4
+ВИСНОВКИ
+У результаті виконання лабораторної роботи було створено діаграми прецедентів для опису програмної системи, розроблено базу даних та специфікацію API. Реалізовано взаємодію між сервером і базою даних, а також між сервером і клієнтом.
+5
+ДОДАТОК А
+UML Діаграма прецедентів
+Рисунок А.1 – Діаграма прецедентів реєстрації та авторизації
+Рисунок А.2 – Діаграма прецедентів дій над контактами, переміщеннями та повідомленнями
+6
+Рисунок А.3 – Діаграма прецедентів дій над лікарнями, зонами, кімнатами, девайсами
+7
+ДОДАТОК Б
+ER-діаграма (Нотація вороняча лапка)
+Рисунок Б.1 – ER діаграма
+8
+ДОДАТОК В
+Діаграма структури бази даних
+Рисунок В.1 – Діаграма структури бази даних
+9
+ДОДАТОК Г
+Фрагменти коду логіки взаємодії з базою даних та взаємодії серверної частини з клієнтом
+Приклад взаємодії з базою даних:
+1 using InRoom.BLL.Contracts.User;
+2 using InRoom.BLL.Helpers;
+3 using InRoom.BLL.Interfaces;
+4 using InRoom.DAL.Interfaces;
+5 using InRoom.DLL.Models;
+6
+7
+8 namespace InRoom.BLL.Services;
+9
+10 public class AuthService : IAuthService
+11 {
+12 private readonly IUserRepository _userRepository;
+13 private readonly IHospitalRepository _hospitalRepository;
+14 private readonly IPasswordHasher _passwordHasher;
+15 private readonly ITokenService _tokenService;
+16
+17 // Constructor to inject dependencies required for user authentication
+18 public AuthService(
+19 IUserRepository userRepository,
+20 IPasswordHasher passwordHasher,
+21 IHospitalRepository hospitalRepository,
+22 ITokenService tokenService)
+23 {
+24 _userRepository = userRepository;
+25 _passwordHasher = passwordHasher;
+26 _hospitalRepository = hospitalRepository;
+10
+27 _tokenService = tokenService;
+28 }
+29
+30 // Method to register a new user
+31 public async Task Register(string name, string surname, string email, string password, string hospitalName)
+32 {
+33 // Check if the user with the given email already exists
+34 var user = await _userRepository.GetByEmail(email);
+35 if (user != null)
+36 {
+37 // If the user exists, throw an exception
+38 throw new ApiException($"This email address ({email}) is already registered", 400);
+39 }
+40
+41 // Hash the password before saving
+42 var hashedPassword = _passwordHasher.Generate(password);
+43
+44 // Fetch the hospital by its name
+45 var hospital = await _hospitalRepository.GetByName(hospitalName);
+46
+47 // Create a new user object
+48 var newUser = new User
+49 {
+50 UserId = Guid.NewGuid(),
+51 Name = name,
+52 Surname = surname,
+53 Email = email,
+54 Password = hashedPassword,
+55 HospitalId = hospital.HospitalId,
+56 Hospital = hospital
+57 };
+58
+11
+59 // Add the new user to the repository
+60 await _userRepository.Add(newUser);
+61 }
+62
+63 // Method to authenticate a user and return a response with access and refresh tokens
+64 public async Task<LoginUserResponse> Login(string email, string password)
+65 {
+66 // Fetch the user by email
+67 var user = await _userRepository.GetByEmail(email);
+68
+69 // If the user is not found, throw an exception
+70 if (user == null)
+71 {
+72 throw new ApiException($"User with email {email} wasn't found", 404);
+73 }
+74
+75 // Verify the provided password against the stored hashed password
+76 var result = _passwordHasher.Verify(password, user.Password);
+77
+78 // If the password is incorrect, throw an exception
+79 if (!result)
+80 {
+81 throw new ApiException("Incorrect password", 400);
+82 }
+83
+84 var loginUserResult = new LoginUserResponse();
+85
+86 // Generate access and refresh tokens for the authenticated user
+87 var (accessToken, refreshToken) = await _tokenService.GenerateTokens(user);
+88
+89 // Set the tokens in the response
+90 loginUserResult.AccessToken = accessToken;
+91 loginUserResult.RefreshToken = refreshToken;
+12
+92
+93 return loginUserResult;
+94 }
+95 }
+Приклад взаємодії з клієнтом:
+1 using InRoom.API.Contracts.User;
+2 using InRoom.BLL.Contracts.User;
+3 using InRoom.BLL.Interfaces;
+4 using Microsoft.AspNetCore.Mvc;
+5 using Swashbuckle.AspNetCore.Annotations;
+6
+7 namespace InRoom.API.Controllers;
+8
+9 [ApiController]
+10 [Route("api/[controller]")]
+11 public class AuthController : ControllerBase
+12 {
+13 private readonly IAuthService _authService;
+14
+15 public AuthController(IAuthService authService)
+16 {
+17 _authService = authService;
+18 }
+19
+20 // Endpoint for registering a new user in the system
+21 [HttpPost("register")]
+22 [SwaggerOperation("User registration into the system")]
+23 public async Task<IActionResult> Register(RegisterUserRequest request)
+24 {
+13
+25 await _authService.Register(request.Name, request.Surname, request.Email, request.Password, request.HospitalName);
+26 return Ok(new { Message = "User successfully registered" });
+27 }
+28
+29 // Endpoint for logging a user into the system
+30 [HttpPost("login")]
+31 [SwaggerOperation("User login into the system")]
+32 [ProducesResponseType(200, Type = typeof(LoginUserResponse))]
+33 public async Task<IActionResult> Login(LoginUserRequest request)
+34 {
+35 var loginResult = await _authService.Login(request.Email, request.Password);
+36
+37 // Storing the refresh token in a secure HTTP-only cookie
+38 HttpContext.Response.Cookies.Append("tasty-cookies", loginResult.RefreshToken, new CookieOptions()
+39 {
+40 HttpOnly = true,
+41 Expires = DateTime.Now.AddDays(30),
+42 SameSite = SameSiteMode.Strict
+43 });
+44
+45 return Ok(loginResult);
+46 }
+47
+48 // Endpoint for logging out a user from the system
+49 [HttpPost("logout")]
+50 [SwaggerOperation("User logout from the system")]
+51 public async Task<IActionResult> Logout()
+52 {
+53 // Deleting the refresh token cookie during logout
+54 HttpContext.Response.Cookies.Delete("tasty-cookies");
+55 return Ok(new { Message = "Successfully logged out" });}}
+14
+ДОДАТОК Д
+Специфікація API
+1 {
+2 "openapi": "3.0.1",
+3 "info": {
+4 "title": "InRoom.API",
+5 "version": "1.0"
+6 },
+7 "paths": {
+8 "/api/Auth/register": {
+9 "post": {
+10 "tags": [
+11 "Auth"
+12 ],
+13 "summary": "User registration into the system",
+14 "requestBody": {
+15 "content": {
+16 "application/json": {
+17 "schema": {
+18 "$ref": "#/components/schemas/RegisterUserRequest"
+19 }
+20 },
+21 "text/json": {
+22 "schema": {
+23 "$ref": "#/components/schemas/RegisterUserRequest"
+24 }
+25 },
+26 "application/*+json": {
+27 "schema": {
+28 "$ref": "#/components/schemas/RegisterUserRequest"
+29 }
+15
+30 }
+31 }
+32 },
+33 "responses": {
+34 "200": {
+35 "description": "OK"
+36 }
+37 }
+38 }
+39 },
+40 "/api/Auth/login": {
+41 "post": {
+42 "tags": [
+43 "Auth"
+44 ],
+45 "summary": "User login into the system",
+46 "requestBody": {
+47 "content": {
+48 "application/json": {
+49 "schema": {
+50 "$ref": "#/components/schemas/LoginUserRequest"
+51 }
+52 },
+53 "text/json": {
+54 "schema": {
+55 "$ref": "#/components/schemas/LoginUserRequest"
+56 }
+57 },
+58 "application/*+json": {
+59 "schema": {
+60 "$ref": "#/components/schemas/LoginUserRequest"
+61 }
+62 }
+16
+63 }
+64 },
+65 "responses": {
+66 "200": {
+67 "description": "OK",
+68 "content": {
+69 "text/plain": {
+70 "schema": {
+71 "$ref": "#/components/schemas/LoginUserResponse"
+72 }
+73 },
+74 "application/json": {
+75 "schema": {
+76 "$ref": "#/components/schemas/LoginUserResponse"
+77 }
+78 },
+79 "text/json": {
+80 "schema": {
+81 "$ref": "#/components/schemas/LoginUserResponse"
+82 }
+83 }
+84 }
+85 }
+86 }
+87 }
+88 },
+89 "/api/Auth/logout": {
+90 "post": {
+91 "tags": [
+92 "Auth"
+93 ],
+94 "summary": "User logout from the system",
+95 "responses": {
+17
+96 "200": {
+97 "description": "OK"
+98 }
+99 }
+100 }
+101 },
+102 "/api/Contact": {
+103 "post": {
+104 "tags": [
+105 "Contact"
+106 ],
+107 "summary": "Create contact",
+108 "requestBody": {
+109 "content": {
+110 "application/json": {
+111 "schema": {
+112 "$ref": "#/components/schemas/CreateContactRequest"
+113 }
+114 },
+115 "text/json": {
+116 "schema": {
+117 "$ref": "#/components/schemas/CreateContactRequest"
+118 }
+119 },
+120 "application/*+json": {
+121 "schema": {
+122 "$ref": "#/components/schemas/CreateContactRequest"
+123 }
+124 }
+125 }
+126 },
+127 "responses": {
+128 "200": {
+18
+129 "description": "OK"
+130 }
+131 }
+132 },
+133 "get": {
+134 "tags": [
+135 "Contact"
+136 ],
+137 "summary": "Get all contacts",
+138 "responses": {
+139 "200": {
+140 "description": "OK"
+141 }
+142 }
+143 }
+144 },
+145 "/api/Contact/{contactId}": {
+146 "get": {
+147 "tags": [
+148 "Contact"
+149 ],
+150 "summary": "Get contact by id",
+151 "parameters": [
+152 {
+153 "name": "contactId",
+154 "in": "path",
+155 "required": true,
+156 "schema": {
+157 "type": "string",
+158 "format": "uuid"
+159 }
+160 }
+161 ],
+19
+162 "responses": {
+163 "200": {
+164 "description": "OK"
+165 }
+166 }
+167 },
+168 "patch": {
+169 "tags": [
+170 "Contact"
+171 ],
+172 "summary": "Edit contact by id",
+173 "parameters": [
+174 {
+175 "name": "contactId",
+176 "in": "path",
+177 "required": true,
+178 "schema": {
+179 "type": "string",
+180 "format": "uuid"
+181 }
+182 }
+183 ],
+184 "requestBody": {
+185 "content": {
+186 "application/json": {
+187 "schema": {
+188 "$ref": "#/components/schemas/UpdateContactRequest"
+189 }
+190 },
+191 "text/json": {
+192 "schema": {
+193 "$ref": "#/components/schemas/UpdateContactRequest"
+194 }
+20
+195 },
+196 "application/*+json": {
+197 "schema": {
+198 "$ref": "#/components/schemas/UpdateContactRequest"
+199 }
+200 }
+201 }
+202 },
+203 "responses": {
+204 "200": {
+205 "description": "OK"
+206 }
+207 }
+208 },
+209 "delete": {
+210 "tags": [
+211 "Contact"
+212 ],
+213 "summary": "Delete contact by id",
+214 "parameters": [
+215 {
+216 "name": "contactId",
+217 "in": "path",
+218 "required": true,
+219 "schema": {
+220 "type": "string",
+221 "format": "uuid"
+222 }
+223 }
+224 ],
+225 "responses": {
+226 "200": {
+227 "description": "OK"
+21
+228 }
+229 }
+230 }
+231 },
+232 "/api/Contact/report": {
+233 "get": {
+234 "tags": [
+235 "Contact"
+236 ],
+237 "summary": "Generate contact report for a specific period",
+238 "parameters": [
+239 {
+240 "name": "userId",
+241 "in": "query",
+242 "schema": {
+243 "type": "string",
+244 "format": "uuid"
+245 }
+246 },
+247 {
+248 "name": "startDate",
+249 "in": "query",
+250 "schema": {
+251 "type": "string",
+252 "format": "date-time"
+253 }
+254 },
+255 {
+256 "name": "endDate",
+257 "in": "query",
+258 "schema": {
+259 "type": "string",
+260 "format": "date-time"
+22
+261 }
+262 }
+263 ],
+264 "responses": {
+265 "200": {
+266 "description": "OK"
+267 }
+268 }
+269 }
+270 },
+271 "/api/Contact/epidemiological-risk-analysis": {
+272 "post": {
+273 "tags": [
+274 "Contact"
+275 ],
+276 "summary": "Analyze contacts for epidemiological risks",
+277 "responses": {
+278 "200": {
+279 "description": "OK"
+280 }
+281 }
+282 }
+283 },
+284 "/api/Contact/auto-register-contact": {
+285 "post": {
+286 "tags": [
+287 "Contact"
+288 ],
+289 "summary": "Automatically register contact with another user",
+290 "responses": {
+291 "200": {
+292 "description": "OK"
+293 }
+23
+294 }
+295 }
+296 },
+297 "/api/Device": {
+298 "post": {
+299 "tags": [
+300 "Device"
+301 ],
+302 "summary": "Create device",
+303 "requestBody": {
+304 "content": {
+305 "application/json": {
+306 "schema": {
+307 "$ref": "#/components/schemas/CreateDeviceRequest"
+308 }
+309 },
+310 "text/json": {
+311 "schema": {
+312 "$ref": "#/components/schemas/CreateDeviceRequest"
+313 }
+314 },
+315 "application/*+json": {
+316 "schema": {
+317 "$ref": "#/components/schemas/CreateDeviceRequest"
+318 }
+319 }
+320 }
+321 },
+322 "responses": {
+323 "200": {
+324 "description": "OK"
+325 }
+326 }
+24
+327 },
+328 "get": {
+329 "tags": [
+330 "Device"
+331 ],
+332 "summary": "Get all devices",
+333 "responses": {
+334 "200": {
+335 "description": "OK"
+336 }
+337 }
+338 }
+339 },
+340 "/api/Device/{deviceId}": {
+341 "get": {
+342 "tags": [
+343 "Device"
+344 ],
+345 "summary": "Get device by id",
+346 "parameters": [
+347 {
+348 "name": "deviceId",
+349 "in": "path",
+350 "required": true,
+351 "schema": {
+352 "type": "string",
+353 "format": "uuid"
+354 }
+355 }
+356 ],
+357 "responses": {
+358 "200": {
+359 "description": "OK"
+25
+360 }
+361 }
+362 },
+363 "patch": {
+364 "tags": [
+365 "Device"
+366 ],
+367 "summary": "Edit device by id",
+368 "parameters": [
+369 {
+370 "name": "deviceId",
+371 "in": "path",
+372 "required": true,
+373 "schema": {
+374 "type": "string",
+375 "format": "uuid"
+376 }
+377 }
+378 ],
+379 "requestBody": {
+380 "content": {
+381 "application/json": {
+382 "schema": {
+383 "$ref": "#/components/schemas/UpdateDeviceRequest"
+384 }
+385 },
+386 "text/json": {
+387 "schema": {
+388 "$ref": "#/components/schemas/UpdateDeviceRequest"
+389 }
+390 },
+391 "application/*+json": {
+392 "schema": {
+26
+393 "$ref": "#/components/schemas/UpdateDeviceRequest"
+394 }
+395 }
+396 }
+397 },
+398 "responses": {
+399 "200": {
+400 "description": "OK"
+401 }
+402 }
+403 },
+404 "delete": {
+405 "tags": [
+406 "Device"
+407 ],
+408 "summary": "Delete device by id",
+409 "parameters": [
+410 {
+411 "name": "deviceId",
+412 "in": "path",
+413 "required": true,
+414 "schema": {
+415 "type": "string",
+416 "format": "uuid"
+417 }
+418 }
+419 ],
+420 "responses": {
+421 "200": {
+422 "description": "OK"
+423 }
+424 }
+425 }
+27
+426 },
+427 "/api/Hospital": {
+428 "post": {
+429 "tags": [
+430 "Hospital"
+431 ],
+432 "summary": "Create hospital",
+433 "requestBody": {
+434 "content": {
+435 "application/json": {
+436 "schema": {
+437 "$ref": "#/components/schemas/CreateHospitalRequest"
+438 }
+439 },
+440 "text/json": {
+441 "schema": {
+442 "$ref": "#/components/schemas/CreateHospitalRequest"
+443 }
+444 },
+445 "application/*+json": {
+446 "schema": {
+447 "$ref": "#/components/schemas/CreateHospitalRequest"
+448 }
+449 }
+450 }
+451 },
+452 "responses": {
+453 "200": {
+454 "description": "OK"
+455 }
+456 }
+457 },
+458 "get": {
+28
+459 "tags": [
+460 "Hospital"
+461 ],
+462 "summary": "Get all hospitals",
+463 "responses": {
+464 "200": {
+465 "description": "OK"
+466 }
+467 }
+468 }
+469 },
+470 "/api/Hospital/{hospitalId}": {
+471 "get": {
+472 "tags": [
+473 "Hospital"
+474 ],
+475 "summary": "Get hospital by id",
+476 "parameters": [
+477 {
+478 "name": "hospitalId",
+479 "in": "path",
+480 "required": true,
+481 "schema": {
+482 "type": "string",
+483 "format": "uuid"
+484 }
+485 }
+486 ],
+487 "responses": {
+488 "200": {
+489 "description": "OK"
+490 }
+491 }
+29
+492 },
+493 "patch": {
+494 "tags": [
+495 "Hospital"
+496 ],
+497 "summary": "Edit hospital by id",
+498 "parameters": [
+499 {
+500 "name": "hospitalId",
+501 "in": "path",
+502 "required": true,
+503 "schema": {
+504 "type": "string",
+505 "format": "uuid"
+506 }
+507 }
+508 ],
+509 "requestBody": {
+510 "content": {
+511 "application/json": {
+512 "schema": {
+513 "$ref": "#/components/schemas/UpdateHospitalRequest"
+514 }
+515 },
+516 "text/json": {
+517 "schema": {
+518 "$ref": "#/components/schemas/UpdateHospitalRequest"
+519 }
+520 },
+521 "application/*+json": {
+522 "schema": {
+523 "$ref": "#/components/schemas/UpdateHospitalRequest"
+524 }
+30
+525 }
+526 }
+527 },
+528 "responses": {
+529 "200": {
+530 "description": "OK"
+531 }
+532 }
+533 },
+534 "delete": {
+535 "tags": [
+536 "Hospital"
+537 ],
+538 "summary": "Delete hospital by id",
+539 "parameters": [
+540 {
+541 "name": "hospitalId",
+542 "in": "path",
+543 "required": true,
+544 "schema": {
+545 "type": "string",
+546 "format": "uuid"
+547 }
+548 }
+549 ],
+550 "responses": {
+551 "200": {
+552 "description": "OK"
+553 }
+554 }
+555 }
+556 },
+557 "/api/Movement": {
+31
+558 "post": {
+559 "tags": [
+560 "Movement"
+561 ],
+562 "summary": "Create movement",
+563 "requestBody": {
+564 "content": {
+565 "application/json": {
+566 "schema": {
+567 "$ref": "#/components/schemas/CreateMovementRequest"
+568 }
+569 },
+570 "text/json": {
+571 "schema": {
+572 "$ref": "#/components/schemas/CreateMovementRequest"
+573 }
+574 },
+575 "application/*+json": {
+576 "schema": {
+577 "$ref": "#/components/schemas/CreateMovementRequest"
+578 }
+579 }
+580 }
+581 },
+582 "responses": {
+583 "200": {
+584 "description": "OK"
+585 }
+586 }
+587 },
+588 "get": {
+589 "tags": [
+590 "Movement"
+32
+591 ],
+592 "summary": "Get all movements",
+593 "responses": {
+594 "200": {
+595 "description": "OK"
+596 }
+597 }
+598 }
+599 },
+600 "/api/Movement/{movementId}": {
+601 "get": {
+602 "tags": [
+603 "Movement"
+604 ],
+605 "summary": "Get movement by id",
+606 "parameters": [
+607 {
+608 "name": "movementId",
+609 "in": "path",
+610 "required": true,
+611 "schema": {
+612 "type": "string",
+613 "format": "uuid"
+614 }
+615 }
+616 ],
+617 "responses": {
+618 "200": {
+619 "description": "OK"
+620 }
+621 }
+622 },
+623 "patch": {
+33
+624 "tags": [
+625 "Movement"
+626 ],
+627 "summary": "Edit movement by id",
+628 "parameters": [
+629 {
+630 "name": "movementId",
+631 "in": "path",
+632 "required": true,
+633 "schema": {
+634 "type": "string",
+635 "format": "uuid"
+636 }
+637 }
+638 ],
+639 "responses": {
+640 "200": {
+641 "description": "OK"
+642 }
+643 }
+644 },
+645 "delete": {
+646 "tags": [
+647 "Movement"
+648 ],
+649 "summary": "Delete movement by id",
+650 "parameters": [
+651 {
+652 "name": "movementId",
+653 "in": "path",
+654 "required": true,
+655 "schema": {
+656 "type": "string",
+34
+657 "format": "uuid"
+658 }
+659 }
+660 ],
+661 "responses": {
+662 "200": {
+663 "description": "OK"
+664 }
+665 }
+666 }
+667 },
+668 "/api/Movement/report/{userId}": {
+669 "get": {
+670 "tags": [
+671 "Movement"
+672 ],
+673 "summary": "Generate movement report for a specific period",
+674 "parameters": [
+675 {
+676 "name": "userId",
+677 "in": "path",
+678 "required": true,
+679 "schema": {
+680 "type": "string",
+681 "format": "uuid"
+682 }
+683 },
+684 {
+685 "name": "startDate",
+686 "in": "query",
+687 "schema": {
+688 "type": "string",
+689 "format": "date-time"
+35
+690 }
+691 },
+692 {
+693 "name": "endDate",
+694 "in": "query",
+695 "schema": {
+696 "type": "string",
+697 "format": "date-time"
+698 }
+699 }
+700 ],
+701 "responses": {
+702 "200": {
+703 "description": "OK"
+704 }
+705 }
+706 }
+707 },
+708 "/api/Notification": {
+709 "post": {
+710 "tags": [
+711 "Notification"
+712 ],
+713 "summary": "Create notification",
+714 "requestBody": {
+715 "content": {
+716 "application/json": {
+717 "schema": {
+718 "$ref": "#/components/schemas/CreateNotificationRequest"
+719 }
+720 },
+721 "text/json": {
+722 "schema": {
+36
+723 "$ref": "#/components/schemas/CreateNotificationRequest"
+724 }
+725 },
+726 "application/*+json": {
+727 "schema": {
+728 "$ref": "#/components/schemas/CreateNotificationRequest"
+729 }
+730 }
+731 }
+732 },
+733 "responses": {
+734 "200": {
+735 "description": "OK"
+736 }
+737 }
+738 },
+739 "get": {
+740 "tags": [
+741 "Notification"
+742 ],
+743 "summary": "Get all notifications",
+744 "responses": {
+745 "200": {
+746 "description": "OK"
+747 }
+748 }
+749 }
+750 },
+751 "/api/Notification/{notificationId}": {
+752 "get": {
+753 "tags": [
+754 "Notification"
+755 ],
+37
+756 "summary": "Get notification by id",
+757 "parameters": [
+758 {
+759 "name": "notificationId",
+760 "in": "path",
+761 "required": true,
+762 "schema": {
+763 "type": "string",
+764 "format": "uuid"
+765 }
+766 }
+767 ],
+768 "responses": {
+769 "200": {
+770 "description": "OK"
+771 }
+772 }
+773 },
+774 "patch": {
+775 "tags": [
+776 "Notification"
+777 ],
+778 "summary": "Edit notification by id",
+779 "parameters": [
+780 {
+781 "name": "notificationId",
+782 "in": "path",
+783 "required": true,
+784 "schema": {
+785 "type": "string",
+786 "format": "uuid"
+787 }
+788 }
+38
+789 ],
+790 "requestBody": {
+791 "content": {
+792 "application/json": {
+793 "schema": {
+794 "$ref": "#/components/schemas/UpdateNotificationRequest"
+795 }
+796 },
+797 "text/json": {
+798 "schema": {
+799 "$ref": "#/components/schemas/UpdateNotificationRequest"
+800 }
+801 },
+802 "application/*+json": {
+803 "schema": {
+804 "$ref": "#/components/schemas/UpdateNotificationRequest"
+805 }
+806 }
+807 }
+808 },
+809 "responses": {
+810 "200": {
+811 "description": "OK"
+812 }
+813 }
+814 },
+815 "delete": {
+816 "tags": [
+817 "Notification"
+818 ],
+819 "summary": "Delete notification by id",
+820 "parameters": [
+821 {
+39
+822 "name": "notificationId",
+823 "in": "path",
+824 "required": true,
+825 "schema": {
+826 "type": "string",
+827 "format": "uuid"
+828 }
+829 }
+830 ],
+831 "responses": {
+832 "200": {
+833 "description": "OK"
+834 }
+835 }
+836 }
+837 },
+838 "/api/Notification/zone-exit/{userId}": {
+839 "post": {
+840 "tags": [
+841 "Notification"
+842 ],
+843 "summary": "Send notification on zone exit",
+844 "parameters": [
+845 {
+846 "name": "userId",
+847 "in": "path",
+848 "required": true,
+849 "schema": {
+850 "type": "string",
+851 "format": "uuid"
+852 }
+853 }
+854 ],
+40
+855 "responses": {
+856 "200": {
+857 "description": "OK"
+858 }
+859 }
+860 }
+861 },
+862 "/api/Room": {
+863 "post": {
+864 "tags": [
+865 "Room"
+866 ],
+867 "summary": "Create room",
+868 "requestBody": {
+869 "content": {
+870 "application/json": {
+871 "schema": {
+872 "$ref": "#/components/schemas/CreateRoomRequest"
+873 }
+874 },
+875 "text/json": {
+876 "schema": {
+877 "$ref": "#/components/schemas/CreateRoomRequest"
+878 }
+879 },
+880 "application/*+json": {
+881 "schema": {
+882 "$ref": "#/components/schemas/CreateRoomRequest"
+883 }
+884 }
+885 }
+886 },
+887 "responses": {
+41
+888 "200": {
+889 "description": "OK"
+890 }
+891 }
+892 },
+893 "get": {
+894 "tags": [
+895 "Room"
+896 ],
+897 "summary": "Get all rooms",
+898 "responses": {
+899 "200": {
+900 "description": "OK"
+901 }
+902 }
+903 }
+904 },
+905 "/api/Room/{roomId}": {
+906 "get": {
+907 "tags": [
+908 "Room"
+909 ],
+910 "summary": "Get room by id",
+911 "parameters": [
+912 {
+913 "name": "roomId",
+914 "in": "path",
+915 "required": true,
+916 "schema": {
+917 "type": "string",
+918 "format": "uuid"
+919 }
+920 }
+42
+921 ],
+922 "responses": {
+923 "200": {
+924 "description": "OK"
+925 }
+926 }
+927 },
+928 "patch": {
+929 "tags": [
+930 "Room"
+931 ],
+932 "summary": "Edit room by id",
+933 "parameters": [
+934 {
+935 "name": "roomId",
+936 "in": "path",
+937 "required": true,
+938 "schema": {
+939 "type": "string",
+940 "format": "uuid"
+941 }
+942 }
+943 ],
+944 "requestBody": {
+945 "content": {
+946 "application/json": {
+947 "schema": {
+948 "$ref": "#/components/schemas/UpdateRoomRequest"
+949 }
+950 },
+951 "text/json": {
+952 "schema": {
+953 "$ref": "#/components/schemas/UpdateRoomRequest"
+43
+954 }
+955 },
+956 "application/*+json": {
+957 "schema": {
+958 "$ref": "#/components/schemas/UpdateRoomRequest"
+959 }
+960 }
+961 }
+962 },
+963 "responses": {
+964 "200": {
+965 "description": "OK"
+966 }
+967 }
+968 },
+969 "delete": {
+970 "tags": [
+971 "Room"
+972 ],
+973 "summary": "Delete room by id",
+974 "parameters": [
+975 {
+976 "name": "roomId",
+977 "in": "path",
+978 "required": true,
+979 "schema": {
+980 "type": "string",
+981 "format": "uuid"
+982 }
+983 }
+984 ],
+985 "responses": {
+986 "200": {
+44
+987 "description": "OK"
+988 }
+989 }
+990 }
+991 },
+992 "/api/User/{userId}": {
+993 "get": {
+994 "tags": [
+995 "User"
+996 ],
+997 "summary": "Get user by id",
+998 "parameters": [
+999 {
+1000 "name": "userId",
+1001 "in": "path",
+1002 "required": true,
+1003 "schema": {
+1004 "type": "string",
+1005 "format": "uuid"
+1006 }
+1007 }
+1008 ],
+1009 "responses": {
+1010 "200": {
+1011 "description": "OK"
+1012 }
+1013 }
+1014 },
+1015 "patch": {
+1016 "tags": [
+1017 "User"
+1018 ],
+1019 "summary": "Edit user by id",
+45
+1020 "parameters": [
+1021 {
+1022 "name": "userId",
+1023 "in": "path",
+1024 "required": true,
+1025 "schema": {
+1026 "type": "string",
+1027 "format": "uuid"
+1028 }
+1029 }
+1030 ],
+1031 "requestBody": {
+1032 "content": {
+1033 "application/json": {
+1034 "schema": {
+1035 "$ref": "#/components/schemas/UpdateUserRequest"
+1036 }
+1037 },
+1038 "text/json": {
+1039 "schema": {
+1040 "$ref": "#/components/schemas/UpdateUserRequest"
+1041 }
+1042 },
+1043 "application/*+json": {
+1044 "schema": {
+1045 "$ref": "#/components/schemas/UpdateUserRequest"
+1046 }
+1047 }
+1048 }
+1049 },
+1050 "responses": {
+1051 "200": {
+1052 "description": "OK"
+46
+1053 }
+1054 }
+1055 },
+1056 "delete": {
+1057 "tags": [
+1058 "User"
+1059 ],
+1060 "summary": "Delete user by id",
+1061 "parameters": [
+1062 {
+1063 "name": "userId",
+1064 "in": "path",
+1065 "required": true,
+1066 "schema": {
+1067 "type": "string",
+1068 "format": "uuid"
+1069 }
+1070 }
+1071 ],
+1072 "responses": {
+1073 "200": {
+1074 "description": "OK"
+1075 }
+1076 }
+1077 }
+1078 },
+1079 "/api/User": {
+1080 "get": {
+1081 "tags": [
+1082 "User"
+1083 ],
+1084 "summary": "Get all users",
+1085 "responses": {
+47
+1086 "200": {
+1087 "description": "OK"
+1088 }
+1089 }
+1090 }
+1091 },
+1092 "/api/User/connect/{userId}": {
+1093 "patch": {
+1094 "tags": [
+1095 "User"
+1096 ],
+1097 "summary": "Connect user to device",
+1098 "parameters": [
+1099 {
+1100 "name": "userId",
+1101 "in": "path",
+1102 "required": true,
+1103 "schema": {
+1104 "type": "string",
+1105 "format": "uuid"
+1106 }
+1107 },
+1108 {
+1109 "name": "deviceId",
+1110 "in": "query",
+1111 "schema": {
+1112 "type": "string",
+1113 "format": "uuid"
+1114 }
+1115 }
+1116 ],
+1117 "responses": {
+1118 "200": {
+48
+1119 "description": "OK"
+1120 }
+1121 }
+1122 }
+1123 },
+1124 "/api/User/location/{userId}": {
+1125 "get": {
+1126 "tags": [
+1127 "User"
+1128 ],
+1129 "summary": "Get user location in the room",
+1130 "parameters": [
+1131 {
+1132 "name": "userId",
+1133 "in": "path",
+1134 "required": true,
+1135 "schema": {
+1136 "type": "string",
+1137 "format": "uuid"
+1138 }
+1139 }
+1140 ],
+1141 "responses": {
+1142 "200": {
+1143 "description": "OK"
+1144 }
+1145 }
+1146 }
+1147 },
+1148 "/api/Zone": {
+1149 "post": {
+1150 "tags": [
+1151 "Zone"
+49
+1152 ],
+1153 "summary": "Create zone",
+1154 "requestBody": {
+1155 "content": {
+1156 "application/json": {
+1157 "schema": {
+1158 "$ref": "#/components/schemas/CreateZoneRequest"
+1159 }
+1160 },
+1161 "text/json": {
+1162 "schema": {
+1163 "$ref": "#/components/schemas/CreateZoneRequest"
+1164 }
+1165 },
+1166 "application/*+json": {
+1167 "schema": {
+1168 "$ref": "#/components/schemas/CreateZoneRequest"
+1169 }
+1170 }
+1171 }
+1172 },
+1173 "responses": {
+1174 "200": {
+1175 "description": "OK"
+1176 }
+1177 }
+1178 },
+1179 "get": {
+1180 "tags": [
+1181 "Zone"
+1182 ],
+1183 "summary": "Get all zones",
+1184 "responses": {
+50
+1185 "200": {
+1186 "description": "OK"
+1187 }
+1188 }
+1189 }
+1190 },
+1191 "/api/Zone/{zoneId}": {
+1192 "get": {
+1193 "tags": [
+1194 "Zone"
+1195 ],
+1196 "summary": "Get zone by id",
+1197 "parameters": [
+1198 {
+1199 "name": "zoneId",
+1200 "in": "path",
+1201 "required": true,
+1202 "schema": {
+1203 "type": "string",
+1204 "format": "uuid"
+1205 }
+1206 }
+1207 ],
+1208 "responses": {
+1209 "200": {
+1210 "description": "OK"
+1211 }
+1212 }
+1213 },
+1214 "patch": {
+1215 "tags": [
+1216 "Zone"
+1217 ],
+51
+1218 "summary": "Edit zone by id",
+1219 "parameters": [
+1220 {
+1221 "name": "zoneId",
+1222 "in": "path",
+1223 "required": true,
+1224 "schema": {
+1225 "type": "string",
+1226 "format": "uuid"
+1227 }
+1228 }
+1229 ],
+1230 "requestBody": {
+1231 "content": {
+1232 "application/json": {
+1233 "schema": {
+1234 "$ref": "#/components/schemas/UpdateZoneRequest"
+1235 }
+1236 },
+1237 "text/json": {
+1238 "schema": {
+1239 "$ref": "#/components/schemas/UpdateZoneRequest"
+1240 }
+1241 },
+1242 "application/*+json": {
+1243 "schema": {
+1244 "$ref": "#/components/schemas/UpdateZoneRequest"
+1245 }
+1246 }
+1247 }
+1248 },
+1249 "responses": {
+1250 "200": {
+52
+1251 "description": "OK"
+1252 }
+1253 }
+1254 },
+1255 "delete": {
+1256 "tags": [
+1257 "Zone"
+1258 ],
+1259 "summary": "Delete zone by id",
+1260 "parameters": [
+1261 {
+1262 "name": "zoneId",
+1263 "in": "path",
+1264 "required": true,
+1265 "schema": {
+1266 "type": "string",
+1267 "format": "uuid"
+1268 }
+1269 }
+1270 ],
+1271 "responses": {
+1272 "200": {
+1273 "description": "OK"
+1274 }
+1275 }
+1276 }
+1277 }
+1278 },
+1279 "components": {
+1280 "schemas": {
+1281 "CreateContactRequest": {
+1282 "required": [
+1283 "contactInitiatorId",
+53
+1284 "contactReceiverId",
+1285 "deviceId",
+1286 "distance"
+1287 ],
+1288 "type": "object",
+1289 "properties": {
+1290 "contactInitiatorId": {
+1291 "type": "string",
+1292 "format": "uuid"
+1293 },
+1294 "contactReceiverId": {
+1295 "type": "string",
+1296 "format": "uuid"
+1297 },
+1298 "deviceId": {
+1299 "type": "string",
+1300 "format": "uuid"
+1301 },
+1302 "distance": {
+1303 "type": "number",
+1304 "format": "float"
+1305 }
+1306 },
+1307 "additionalProperties": false
+1308 },
+1309 "CreateDeviceRequest": {
+1310 "required": [
+1311 "model",
+1312 "roomName"
+1313 ],
+1314 "type": "object",
+1315 "properties": {
+1316 "model": {
+54
+1317 "minLength": 1,
+1318 "type": "string"
+1319 },
+1320 "roomName": {
+1321 "minLength": 1,
+1322 "type": "string"
+1323 }
+1324 },
+1325 "additionalProperties": false
+1326 },
+1327 "CreateHospitalRequest": {
+1328 "required": [
+1329 "address",
+1330 "name"
+1331 ],
+1332 "type": "object",
+1333 "properties": {
+1334 "name": {
+1335 "minLength": 1,
+1336 "type": "string"
+1337 },
+1338 "address": {
+1339 "minLength": 1,
+1340 "type": "string"
+1341 }
+1342 },
+1343 "additionalProperties": false
+1344 },
+1345 "CreateMovementRequest": {
+1346 "required": [
+1347 "deviceId",
+1348 "userId"
+1349 ],
+55
+1350 "type": "object",
+1351 "properties": {
+1352 "deviceId": {
+1353 "type": "string",
+1354 "format": "uuid"
+1355 },
+1356 "userId": {
+1357 "type": "string",
+1358 "format": "uuid"
+1359 }
+1360 },
+1361 "additionalProperties": false
+1362 },
+1363 "CreateNotificationRequest": {
+1364 "required": [
+1365 "message",
+1366 "userId"
+1367 ],
+1368 "type": "object",
+1369 "properties": {
+1370 "userId": {
+1371 "type": "string",
+1372 "format": "uuid"
+1373 },
+1374 "message": {
+1375 "minLength": 1,
+1376 "type": "string"
+1377 }
+1378 },
+1379 "additionalProperties": false
+1380 },
+1381 "CreateRoomRequest": {
+1382 "required": [
+56
+1383 "name",
+1384 "zoneName"
+1385 ],
+1386 "type": "object",
+1387 "properties": {
+1388 "name": {
+1389 "minLength": 1,
+1390 "type": "string"
+1391 },
+1392 "zoneName": {
+1393 "minLength": 1,
+1394 "type": "string"
+1395 }
+1396 },
+1397 "additionalProperties": false
+1398 },
+1399 "CreateZoneRequest": {
+1400 "required": [
+1401 "floorNumber",
+1402 "hospitalName",
+1403 "name"
+1404 ],
+1405 "type": "object",
+1406 "properties": {
+1407 "name": {
+1408 "minLength": 1,
+1409 "type": "string"
+1410 },
+1411 "floorNumber": {
+1412 "type": "integer",
+1413 "format": "int32"
+1414 },
+1415 "hospitalName": {
+57
+1416 "minLength": 1,
+1417 "type": "string"
+1418 }
+1419 },
+1420 "additionalProperties": false
+1421 },
+1422 "LoginUserRequest": {
+1423 "required": [
+1424 "email",
+1425 "password"
+1426 ],
+1427 "type": "object",
+1428 "properties": {
+1429 "email": {
+1430 "minLength": 1,
+1431 "type": "string",
+1432 "format": "email"
+1433 },
+1434 "password": {
+1435 "minLength": 1,
+1436 "type": "string"
+1437 }
+1438 },
+1439 "additionalProperties": false
+1440 },
+1441 "LoginUserResponse": {
+1442 "type": "object",
+1443 "properties": {
+1444 "accessToken": {
+1445 "type": "string",
+1446 "nullable": true
+1447 },
+1448 "refreshToken": {
+58
+1449 "type": "string",
+1450 "nullable": true
+1451 }
+1452 },
+1453 "additionalProperties": false
+1454 },
+1455 "RegisterUserRequest": {
+1456 "required": [
+1457 "email",
+1458 "hospitalName",
+1459 "name",
+1460 "password",
+1461 "surname"
+1462 ],
+1463 "type": "object",
+1464 "properties": {
+1465 "name": {
+1466 "minLength": 1,
+1467 "type": "string"
+1468 },
+1469 "surname": {
+1470 "minLength": 1,
+1471 "type": "string"
+1472 },
+1473 "email": {
+1474 "minLength": 1,
+1475 "type": "string",
+1476 "format": "email"
+1477 },
+1478 "password": {
+1479 "minLength": 1,
+1480 "type": "string"
+1481 },
+59
+1482 "hospitalName": {
+1483 "minLength": 1,
+1484 "type": "string"
+1485 }
+1486 },
+1487 "additionalProperties": false
+1488 },
+1489 "Roles": {
+1490 "enum": [1, 2],
+1491 "type": "integer",
+1492 "format": "int32"
+1493 },
+1494 "UpdateContactRequest": {
+1495 "required": [
+1496 "distance"
+1497 ],
+1498 "type": "object",
+1499 "properties": {
+1500 "distance": {
+1501 "type": "number",
+1502 "format": "float"
+1503 }
+1504 },
+1505 "additionalProperties": false
+1506 },
+1507 "UpdateDeviceRequest": {
+1508 "required": [
+1509 "model",
+1510 "roomName"
+1511 ],
+1512 "type": "object",
+1513 "properties": {
+1514 "model": {
+60
+1515 "minLength": 1,
+1516 "type": "string"
+1517 },
+1518 "roomName": {
+1519 "minLength": 1,
+1520 "type": "string"
+1521 }
+1522 },
+1523 "additionalProperties": false
+1524 },
+1525 "UpdateHospitalRequest": {
+1526 "required": [
+1527 "address",
+1528 "name"
+1529 ],
+1530 "type": "object",
+1531 "properties": {
+1532 "name": {
+1533 "minLength": 1,
+1534 "type": "string"
+1535 },
+1536 "address": {
+1537 "minLength": 1,
+1538 "type": "string"
+1539 }
+1540 },
+1541 "additionalProperties": false
+1542 },
+1543 "UpdateNotificationRequest": {
+1544 "required": [
+1545 "message"
+1546 ],
+1547 "type": "object",
+61
+1548 "properties": {
+1549 "message": {
+1550 "minLength": 1,
+1551 "type": "string"
+1552 }
+1553 },
+1554 "additionalProperties": false
+1555 },
+1556 "UpdateRoomRequest": {
+1557 "required": [
+1558 "name",
+1559 "zoneName"
+1560 ],
+1561 "type": "object",
+1562 "properties": {
+1563 "name": {
+1564 "minLength": 1,
+1565 "type": "string"
+1566 },
+1567 "zoneName": {
+1568 "minLength": 1,
+1569 "type": "string"
+1570 }
+1571 },
+1572 "additionalProperties": false
+1573 },
+1574 "UpdateUserRequest": {
+1575 "required": [
+1576 "email",
+1577 "name",
+1578 "role",
+1579 "surname"
+1580 ],
+62
+1581 "type": "object",
+1582 "properties": {
+1583 "name": {
+1584 "minLength": 1,
+1585 "type": "string"
+1586 },
+1587 "surname": {
+1588 "minLength": 1,
+1589 "type": "string"
+1590 },
+1591 "email": {
+1592 "minLength": 1,
+1593 "type": "string",
+1594 "format": "email"
+1595 },
+1596 "role": {
+1597 "$ref": "#/components/schemas/Roles"
+1598 }
+1599 },
+1600 "additionalProperties": false
+1601 },
+1602 "UpdateZoneRequest": {
+1603 "required": [
+1604 "floorNumber",
+1605 "hospitalName",
+1606 "name"
+1607 ],
+1608 "type": "object",
+1609 "properties": {
+1610 "name": {
+1611 "minLength": 1,
+1612 "type": "string"
+1613 },
+63
+1614 "floorNumber": {
+1615 "type": "integer",
+1616 "format": "int32"
+1617 },
+1618 "hospitalName": {
+1619 "minLength": 1,
+1620 "type": "string"
+1621 }
+1622 },
+1623 "additionalProperties": false
+1624 }
+1625 }
+1626 }
+1627 }
+64
+ДОДАТОК Е
+Посилання на відео-звіт
+https://youtu.be/8LMMZwoZLqc
