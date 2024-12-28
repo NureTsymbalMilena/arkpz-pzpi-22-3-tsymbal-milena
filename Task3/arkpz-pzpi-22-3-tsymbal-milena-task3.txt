@@ -1,0 +1,672 @@
+1
+Харківський національний університет радіоелектроніки
+Факультет комп'ютерних наук
+Катедра програмної інженерії
+ЗВІТ
+до лабораторної роботи №3
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «РОЗРОБКА БІЗНЕС-ЛОГІКИ ТА ФУНКЦІЙ АДМІНІСТРУВАННЯ СЕРВЕРНОЇ ЧАСТИНИ ПРОГРАМНОЇ СИСТЕМИ»
+Виконала
+ст. гр. ПЗПІ-22-3
+Цимбал Мілена Русланівна
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+Харків 2024
+2
+1 МЕТА
+Розробити бізнес-логіку та функції адміністрування серверної частини програмної системи.
+2 ХІД РОБОТИ
+У процесі розробки бізнес-логіки серверної частини системи контролю знаходження людини в конкретному приміщенні та її контакту з іншими людьми було створено діаграми діяльності та взаємодії, які наведено в Додатку А. У ході реалізації бізнес-логіки було впроваджено наступні функціональні можливості: адміністрування бази даних, що включає створення резервних копій та відновлення даних із резервних копій, підключення користувача до девайсу, налаштування прав доступу для різних типів користувачів, генерація звітів про переміщення та контакти осіб за певний період, відправка сповіщень адміністрації про залишення пацієнтами або працівниками визначеної зони, аналіз контактів для виявлення епідеміологічних ризиків, визначення місцезнаходження користувачів у приміщенні, реєстрація контактів між користувачами. Код реалізації функцій бізнес-логіки наведено в Додатку Б, а демонстрацію виконаної роботи можна переглянути за посиланням, яке наведено в Додатку В.
+3
+ВИСНОВКИ
+У результаті виконання лабораторної роботи були розроблені діаграми взаємодії та діяльності для серверної частини програмної системи. Також було впроваджено код, який реалізує бізнес-логіку та функції адміністрування серверної частини.
+4
+ДОДАТОК А
+Діаграми діяльності та взаємодії для серверної частини
+Рисунок А.1 – Діаграма діяльності для функцій адміністрування системи
+5
+Рисунок А.2 – Діаграма діяльності для функцій створення переміщення
+6
+Рисунок А.3 – Діаграма діяльності для функцій для отримання користувачів у зоні
+7
+Рисунок А.4 – Діаграма взаємодії для функції створення нового переміщення
+8
+ДОДАТОК Б
+Код функцій бізнес-логіки та адміністрування
+Код функцій для адміністрування бази даних
+1 using InRoom.BLL.Helpers;
+2 using InRoom.BLL.Interfaces;
+3 using InRoom.DAL.Interfaces;
+4 using InRoom.DLL.Enums;
+5 using Microsoft.Data.SqlClient;
+6 using User = InRoom.DLL.Models.User;
+7
+8 namespace InRoom.BLL.Services;
+9
+10 public class AdminService: GenericService<User>, IAdminService
+11 {
+12 private readonly string _connectionString;
+13 private readonly IUnitOfWork _unitOfWork;
+14 private readonly IUserRepository _userRepository;
+15 private readonly IDeviceRepository _deviceRepository;
+16
+17 public AdminService(string? connectionString, IUnitOfWork unitOfWork, IUserRepository userRepository, IDeviceRepository deviceRepository) : base(unitOfWork)
+18 {
+19 _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+20 _unitOfWork = unitOfWork;
+21 _userRepository = userRepository;
+22 _deviceRepository = deviceRepository;
+23 }
+24
+9
+25 public async Task<string> BackupData(string? outputDirectory)
+26 {
+27 try
+28 {
+29 outputDirectory ??= @"C:\Backups";
+30 if (!Directory.Exists(outputDirectory))
+31 {
+32 Directory.CreateDirectory(outputDirectory);
+33 }
+34
+35 string backupFileName = $"backup_{DateTime.Now:yyyyMMddHHmmss}.bak";
+36 string backupFilePath = Path.Combine(outputDirectory, backupFileName);
+37
+38 using (SqlConnection con = new SqlConnection(_connectionString))
+39 {
+40 await con.OpenAsync();
+41 SqlCommand com = new SqlCommand($"BACKUP DATABASE InRoom TO DISK = @BackupFilePath", con);
+42 com.Parameters.AddWithValue("@BackupFilePath", backupFilePath);
+43
+44 await com.ExecuteNonQueryAsync();
+45 con.Close();
+46 }
+47
+48 return backupFilePath;
+49 }
+50 catch (Exception ex)
+51 {
+52 throw new ApiException($"An error occurred while creating the backup: {ex.Message}", 500);
+53 }
+54 }
+55
+10
+56 public async Task RestoreData(string backupFilePath)
+57 {
+58 try
+59 {
+60 if (string.IsNullOrEmpty(backupFilePath))
+61 {
+62 throw new ArgumentException("Backup file path is required.");
+63 }
+64
+65 string restoreQuery = $@"
+66 USE master;
+67
+68 -- Закрываем все соединения с базой данных InRoom
+69 ALTER DATABASE InRoom SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+70
+71 -- Выполняем восстановление базы данных
+72 RESTORE DATABASE InRoom FROM DISK = @BackupFilePath WITH REPLACE;
+73
+74 -- Возвращаем базу данных в многопользовательский режим
+75 ALTER DATABASE InRoom SET MULTI_USER;
+76 ";
+77
+78 using (SqlConnection con = new SqlConnection(_connectionString))
+79 {
+80 await con.OpenAsync();
+81
+82 SqlCommand com = new SqlCommand(restoreQuery, con);
+83 com.Parameters.AddWithValue("@BackupFilePath", backupFilePath);
+84
+85 await com.ExecuteNonQueryAsync();
+86 con.Close();
+87 }
+88
+11
+89 }
+90 catch (Exception ex)
+91 {
+92 throw new ApiException($"An error occurred while restoring the backup: {ex.Message}", 500);
+93 }
+94 }
+95
+96 private string GetSqlCmdBackupArguments(string outputPath)
+97 {
+98 var builder = new SqlConnectionStringBuilder(_connectionString);
+99
+100 string server = builder.DataSource;
+101 string database = builder.InitialCatalog;
+102 string user = builder.UserID;
+103 string password = builder.Password;
+104
+105 return $"-S {server} -U {user} -P {password} -Q \"BACKUP DATABASE [{database}] TO DISK='{outputPath}' WITH INIT, COMPRESSION\"";
+106 }
+107
+108 private string GetSqlCmdRestoreArguments(string backupFilePath)
+109 {
+110 var builder = new SqlConnectionStringBuilder(_connectionString);
+111
+112 string server = builder.DataSource;
+113 string database = builder.InitialCatalog;
+114 string user = builder.UserID;
+115 string password = builder.Password;
+116
+117 return $"-S {server} -U {user} -P {password} -Q \"RESTORE DATABASE [{database}] FROM DISK='{backupFilePath}' WITH REPLACE, STATS=10\"";
+118 }
+12
+119
+120 public async Task<User> ConnectUserToDevice(string userEmail, string roomName)
+121 {
+122 var user = await _userRepository.GetByEmail(userEmail);
+123 if (user == null)
+124 {
+125 throw new ApiException($"User with email {userEmail} not found", 404);
+126 }
+127
+128 var device = await _deviceRepository.GetByRoomName(roomName);
+129 if (device == null)
+130 {
+131 throw new ApiException($"Device connected to room {roomName} not found", 404);
+132 }
+133
+134 user.DeviceId = device.DeviceId;
+135 user.Device = device;
+136
+137 await _userRepository.Update(user);
+138 await _unitOfWork.SaveChangesAsync();
+139
+140 return user;
+141 }
+142
+143 public async Task<User> SetRole(string userEmail, Roles role)
+144 {
+145 var user = await _userRepository.GetByEmail(userEmail);
+146 if (user == null)
+147 {
+148 throw new ApiException($"User with email {userEmail} not found", 404);
+149 }
+150
+13
+151 if (!Enum.IsDefined(typeof(Roles), role))
+152 {
+153 throw new ApiException("Invalid role", 400);
+154 }
+155
+156 user.Role = role;
+157
+158 await _userRepository.Update(user);
+159 await _unitOfWork.SaveChangesAsync();
+160
+161 return user;
+162 }
+163 }
+Код функцій для роботи з контактами
+1 using InRoom.BLL.Contracts.User;
+2 using InRoom.BLL.Helpers;
+3 using InRoom.BLL.Interfaces;
+4 using InRoom.DAL.Interfaces;
+5 using InRoom.DLL.Models;
+6
+7 namespace InRoom.BLL.Services;
+8
+9 public class ContactService : GenericService<Contact>, IContactService
+10 {
+11 private readonly IUnitOfWork _unitOfWork;
+12 private readonly IUserRepository _userRepository;
+13 private readonly IDeviceRepository _deviceRepository;
+14 private readonly IContactRepository _contactRepository;
+15 private readonly IDiseaseRepository _diseaseRepository;
+16
+17 // Constructor to inject required dependencies for the ContactService
+14
+18 public ContactService(
+19 IUnitOfWork unitOfWork,
+20 IUserRepository userRepository,
+21 IDeviceRepository deviceRepository,
+22 IContactRepository contactRepository,
+23 IDiseaseRepository diseaseRepository) : base(unitOfWork)
+24 {
+25 _unitOfWork = unitOfWork;
+26 _userRepository = userRepository;
+27 _deviceRepository = deviceRepository;
+28 _contactRepository = contactRepository;
+29 _diseaseRepository = diseaseRepository;
+30 }
+31
+32 // Method to create a new contact between two users with a specific distance and device
+33 public async Task<Contact> Add(Guid initiatorId, Guid receiverId, Guid deviceId,
+34 float initiatorX, float initiatorY, float initiatorZ,
+35 float receiverX, float receiverY, float receiverZ)
+36 {
+37 const float MaxAllowedDistance = 5.0f;
+38
+39 var initiator = await _userRepository.GetById(initiatorId);
+40 if (initiator == null)
+41 {
+42 throw new ApiException($"User initiator with ID {initiatorId} not found.", 404);
+43 }
+44
+45 var receiver = await _userRepository.GetById(receiverId);
+46 if (receiver == null)
+47 {
+48 throw new ApiException($"User receiver with ID {receiverId} not found.", 404);
+49 }
+15
+50
+51 var distance = CalculateDistance(initiatorX, initiatorY, initiatorZ, receiverX, receiverY, receiverZ);
+52
+53 if (distance > MaxAllowedDistance)
+54 {
+55 throw new ApiException($"Contact cannot be created. Distance ({distance}m) exceeds the maximum allowed value of {MaxAllowedDistance}m.", 400);
+56 }
+57
+58 var device = await _deviceRepository.GetById(deviceId);
+59 if (device == null)
+60 {
+61 throw new ApiException($"Device with ID {deviceId} not found.", 404);
+62 }
+63
+64 var newContact = new Contact()
+65 {
+66 ContactId = Guid.NewGuid(),
+67 ContactInitiatorId = initiatorId,
+68 ContactInitiator = initiator,
+69 ContactReceiverId = receiverId,
+70 ContactReceiver = receiver,
+71 DeviceId = deviceId,
+72 Device = device,
+73 MinDistance = distance
+74 };
+75
+76 await Repository.Add(newContact);
+77 await _unitOfWork.SaveChangesAsync();
+78
+79 return newContact;
+80 }
+16
+81
+82 // Method to calculate the distance between users
+83 private double CalculateDistance(float userX, float userY, float userZ, float deviceX, float deviceY, float deviceZ)
+84 {
+85 return Math.Sqrt(Math.Pow(deviceX - userX, 2) + Math.Pow(deviceY - userY, 2) + Math.Pow(deviceZ - userZ, 2));
+86 }
+87
+88 // Method to update an existing contact with a new distance value
+89 public async Task<Contact> Update(Guid contactId, float distance)
+90 {
+91 var contact = await Repository.GetById(contactId);
+92 if (contact == null)
+93 {
+94 throw new ApiException($"Contact with ID {contactId} not found.", 404);
+95 }
+96
+97 if (distance < 0)
+98 {
+99 throw new ApiException("Distance cannot be negative.", 400);
+100 }
+101
+102 contact.ContactEndTime = DateTime.Now;
+103 contact.MinDistance = distance < contact.MinDistance ? distance : contact.MinDistance;
+104
+105 await Repository.Update(contact);
+106 await _unitOfWork.SaveChangesAsync();
+107
+108 return contact;
+109 }
+110
+17
+111 // Method to get movements report
+112 public async Task<ContacsReportResponse> GetContactsReport(Guid userId, DateTime startDate, DateTime endDate)
+113 {
+114 var user = await _userRepository.GetById(userId);
+115 if (user == null)
+116 {
+117 throw new ApiException($"User with ID {userId} not found.", 404);
+118 }
+119
+120 var contacts = await _contactRepository.GetContactsByDateRangeAndUserId(userId, startDate, endDate);
+121
+122 var contactsReportResponse = new ContacsReportResponse()
+123 {
+124 User = user,
+125 StartDate = startDate,
+126 EndDate = endDate,
+127 Contacts = contacts
+128 };
+129
+130 return contactsReportResponse;
+131 }
+132
+133 // Method to get epidemiological risk analysis
+134 public async Task<EpidemiologicalRiskAnalysisResponse> AnalyzeEpidemiologicalRisk(Guid userId)
+135 {
+136 var user = await _userRepository.GetById(userId);
+137 if (user == null)
+138 {
+139 throw new ApiException($"User with ID {userId} not found.", 404);
+140 }
+18
+141
+142 var contacts = await _contactRepository.GetByUserIdAndDaysNumber(userId, 14);
+143 double totalRisk = 0;
+144 int highRiskContacts = 0;
+145 int totalContacts = contacts.Count;
+146 double totalContactDuration = 0;
+147 var potentialDiseases = new HashSet<Disease>();
+148
+149 var userDisease = user.Disease;
+150 bool isContagious = userDisease != null && userDisease.Contagious;
+151
+152 if (contacts.Any())
+153 {
+154 foreach (var contact in contacts)
+155 {
+156 double contactDuration = contact.ContactEndTime.HasValue
+157 ? (contact.ContactEndTime.Value - contact.ContactStartTime).TotalMinutes
+158 : 0;
+159
+160 totalContactDuration += contactDuration;
+161
+162 var contactInitiator = await _userRepository.GetById(contact.ContactInitiatorId);
+163 if (contactInitiator.DiseaseId.HasValue)
+164 {
+165 contactInitiator.Disease = await _diseaseRepository.GetById(contactInitiator.DiseaseId.Value);
+166 }
+167
+168 var contactReceiver = await _userRepository.GetById(contact.ContactReceiverId);
+169 if (contactReceiver.DiseaseId.HasValue)
+170 {
+19
+171 contactReceiver.Disease = await _diseaseRepository.GetById(contactReceiver.DiseaseId.Value);
+172 }
+173
+174 bool initiatorHasDisease = contactInitiator.Disease != null && contactInitiator.Disease.Contagious;
+175 bool receiverHasDisease = contactReceiver.Disease != null && contactReceiver.Disease.Contagious;
+176
+177 double risk = 0;
+178
+179 if (contactDuration > 15)
+180 {
+181 risk += 0.3;
+182 }
+183
+184 if (contact.ContactInitiatorId == userId && receiverHasDisease)
+185 {
+186 risk += 0.5;
+187
+188 if (contact.MinDistance < 2)
+189 {
+190 risk += 0.2;
+191 }
+192
+193 totalRisk += risk;
+194
+195 if (contactReceiver.Disease != null)
+196 {
+197 potentialDiseases.Add(contactReceiver.Disease);
+198 }
+199 }
+200 else if (contact.ContactReceiverId == userId && initiatorHasDisease)
+20
+201 {
+202 risk += 0.5;
+203
+204 if (contact.MinDistance < 2)
+205 {
+206 risk += 0.2;
+207 }
+208
+209 totalRisk += risk;
+210
+211 if (contactInitiator.Disease != null)
+212 {
+213 potentialDiseases.Add(contactInitiator.Disease);
+214 }
+215 }
+216
+217 if (initiatorHasDisease || receiverHasDisease)
+218 {
+219 highRiskContacts++;
+220 }
+221 }
+222
+223 double averageRisk = totalRisk / totalContacts;
+224 TimeSpan averageContactDuration = TimeSpan.FromMinutes(totalContactDuration / totalContacts);
+225
+226 string riskLevel = "Low";
+227 if (averageRisk > 0.6)
+228 {
+229 riskLevel = "High";
+230 }
+231 else if (averageRisk > 0.3)
+232 {
+21
+233 riskLevel = "Moderate";
+234 }
+235
+236 return new EpidemiologicalRiskAnalysisResponse
+237 {
+238 User = user,
+239 Contacts = contacts,
+240 TotalRisk = totalRisk,
+241 UserDisease = userDisease,
+242 IsContagious = isContagious,
+243 TotalContagionRate = totalRisk,
+244 AverageContactDuration = averageContactDuration,
+245 RiskLevel = riskLevel,
+246 PotentialDiseases = potentialDiseases.ToList()
+247 };
+248 }
+249
+250 return new EpidemiologicalRiskAnalysisResponse
+251 {
+252 User = user,
+253 Contacts = new List<Contact>(),
+254 TotalRisk = 0,
+255 UserDisease = userDisease,
+256 IsContagious = isContagious,
+257 TotalContagionRate = 0,
+258 AverageContactDuration = TimeSpan.Zero,
+259 RiskLevel = "Low",
+260 PotentialDiseases = new List<Disease>()
+261 };
+262 }
+263 }
+22
+Код функцій для роботи з девайсами
+1 using InRoom.BLL.Contracts.Room;
+2 using InRoom.BLL.Contracts.User;
+3 using InRoom.BLL.Helpers;
+4 using InRoom.BLL.Interfaces;
+5 using InRoom.DAL.Interfaces;
+6 using InRoom.DLL.Enums;
+7 using InRoom.DLL.Models;
+8
+9 namespace InRoom.BLL.Services;
+10
+11 public class DeviceService: GenericService<Device>, IDeviceService
+12 {
+13 private readonly IUnitOfWork _unitOfWork;
+14 private readonly IDeviceRepository _deviceRepository;
+15 private readonly IRoomRepository _roomRepository;
+16 private readonly IZoneRepository _zoneRepository;
+17 private readonly IUserRepository _userRepository;
+18
+19 // Constructor to inject required dependencies for the DeviceService
+20 public DeviceService(
+21 IUnitOfWork unitOfWork,
+22 IDeviceRepository deviceRepository,
+23 IRoomRepository roomRepository,
+24 IZoneRepository zoneRepository,
+25 IUserRepository userRepository) : base(unitOfWork)
+26 {
+27 _unitOfWork = unitOfWork;
+28 _deviceRepository = deviceRepository;
+29 _roomRepository = roomRepository;
+30 _zoneRepository = zoneRepository;
+31 _userRepository = userRepository;
+23
+32 }
+33
+34 // Method to add a new device to a room, ensuring the room is available
+35 public async Task<Device> Add(string model, string roomName)
+36 {
+37 var device = await _deviceRepository.GetByRoomName(roomName);
+38 if (device != null)
+39 {
+40 throw new ApiException($"The device in room {roomName} is currently in use", 400);
+41 }
+42
+43 var room = await _roomRepository.GetByName(roomName);
+44 if (room == null)
+45 {
+46 throw new ApiException($"The room {roomName} wasn't found", 404);
+47 }
+48
+49 var newDevice = new Device
+50 {
+51 DeviceId = Guid.NewGuid(),
+52 Model = model,
+53 RoomId = room.RoomId,
+54 Room = room
+55 };
+56
+57 await Repository.Add(newDevice);
+58 await _unitOfWork.SaveChangesAsync();
+59
+60 return newDevice;
+61 }
+62
+63 // Method to update an existing device with a new model and room
+24
+64 public async Task<Device> Update(Guid deviceId, string model, string roomName)
+65 {
+66 var device = await Repository.GetById(deviceId);
+67 if (device == null)
+68 {
+69 throw new ApiException($"Device with ID {deviceId} not found.", 404);
+70 }
+71
+72 var room = await _roomRepository.GetByName(roomName);
+73 if (room == null)
+74 {
+75 throw new ApiException($"The room {roomName} wasn't found", 404);
+76 }
+77
+78 device.Model = model;
+79 device.RoomId = room.RoomId;
+80 device.Room = room;
+81
+82 await Repository.Update(device);
+83 await _unitOfWork.SaveChangesAsync();
+84
+85 return device;
+86 }
+87
+88 // Method to get device location by id
+89 public async Task<RoomLocation> GetLocationById(Guid deviceId)
+90 {
+91 var device = await _deviceRepository.GetById(deviceId);
+92 if (device == null)
+93 {
+94 throw new ApiException($"Device with ID {deviceId} not found.", 404);
+95 }
+96
+25
+97 var roomLocation = new RoomLocation()
+98 {
+99 X = device.Room.X,
+100 Y = device.Room.Y,
+101 Z = device.Room.Z,
+102 Height = device.Room.Height,
+103 Width = device.Room.Width,
+104 Length = device.Room.Length,
+105 };
+106
+107 return roomLocation;
+108 }
+109
+110 // Method to update an existing device with a new model status
+111 public async Task<Device> UpdateStatus(Guid deviceId, DeviceStatuses deviceStatus)
+112 {
+113 var device = await Repository.GetById(deviceId);
+114 if (device == null)
+115 {
+116 throw new ApiException($"Device with ID {deviceId} not found.", 404);
+117 }
+118
+119 device.Status = deviceStatus;
+120
+121 await Repository.Update(device);
+122 await _unitOfWork.SaveChangesAsync();
+123
+124 return device;
+125 }
+126
+127 // Method to update an existing device with a new model status
+128 public async Task<UsersInZoneResponse> GetUsersInZoneById(Guid deviceId)
+26
+129 {
+130 var device = await Repository.GetById(deviceId);
+131 if (device == null)
+132 {
+133 throw new ApiException($"Device with ID {deviceId} not found.", 404);
+134 }
+135
+136 var room = await _roomRepository.GetById(device.RoomId);
+137 if (room == null)
+138 {
+139 throw new ApiException($"Room for device with ID {deviceId} not found.", 404);
+140 }
+141
+142 var zone = await _zoneRepository.GetById(room.ZoneId);
+143 if (zone == null)
+144 {
+145 throw new ApiException($"Zone for room with ID {room.RoomId} not found.", 404);
+146 }
+147
+148 var allUsers = await _userRepository.GetUsersByHospitalId(zone.HospitalId);
+149
+150 var usersInZone = new List<UserLocation>();
+151
+152 foreach (var user in allUsers)
+153 {
+154 if (IsUserInZone(user, zone))
+155 {
+156 usersInZone.Add(new UserLocation
+157 {
+158 UserId = user.UserId,
+159 X = user.X,
+160 Y = user.Y,
+27
+161 Z = user.Z
+162 });
+163 }
+164 }
+165
+166 var userInZoneResponse = new UsersInZoneResponse()
+167 {
+168 Users = usersInZone
+169 };
+170
+171 return userInZoneResponse;
+172 }
+173
+174 private bool IsUserInZone(User user, Zone zone)
+175 {
+176 float halfLength = zone.Length / 2;
+177 float halfWidth = zone.Width / 2;
+178 float halfHeight = zone.Height / 2;
+179
+180 return user.X >= (zone.X - halfLength) && user.X <= (zone.X + halfLength) &&
+181 user.Y >= (zone.Y - halfWidth) && user.Y <= (zone.Y + halfWidth) &&
+182 user.Z >= (zone.Z - halfHeight) && user.Z <= (zone.Z + halfHeight);
+183 }
+184 }
+28
+ДОДАТОК В
+Відео-посилання на YouTube
+https://youtu.be/5kOnj_j-RR0

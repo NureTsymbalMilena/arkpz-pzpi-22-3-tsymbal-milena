@@ -1,0 +1,130 @@
+1
+Харківський національний університет радіоелектроніки
+Факультет комп'ютерних наук
+Катедра програмної інженерії
+ЗВІТ
+до лабораторної роботи №5
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «РОЗГОРТАННЯ ПРОГРАМНОЇ СИСТЕМИ ТА ДЕМОНСТРАЦІЯ ЇЇ РОБОТИ»
+Виконала
+ст. гр. ПЗПІ-22-3
+Цимбал Мілена Русланівна
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+Харків 2024
+2
+1 МЕТА РОБОТИ
+Мета даної лабораторної роботи – розгорнути програмну систему та продемонструвати її роботу.
+2 ХІД РОБОТИ
+Виконання лабораторної роботи включало повний цикл розгортання програмної системи. Спочатку було здійснено підготовку компонентів: встановлено всі необхідні залежності та налаштовано конфігурацію через файл config.yaml. Завдяки спеціалізованим функціям вдалося інтегрувати користувацькі дані, такі як ім’я користувача, та параметри бази даних для забезпечення коректної роботи системи. Код цієї частини наведено в Додатку А.
+На наступному етапі було створено й налаштовано базу даних. Впроваджено механізм перевірки її існування, автоматичного створення у разі відсутності, а також відновлення даних із зашифрованого резервного файлу. Для цього використовувалися функції decrypt і encrypt, які гарантують безпеку даних під час обробки та зберігання.
+Крім цього, у системі реалізовано функціонал створення нового користувача та аутентифікації існуючого. Дані конфігурації перетворювалися з формату YAML у JSON та надсилалися на сервер за допомогою HTTP-запиту на визначений URL.
+Для перевірки правильності роботи системи записано відео, у якому демонструються всі основні етапи: зчитування конфігураційного файлу, взаємодія з базою даних та управління резервними копіями. Отримані результати підтвердили успішне виконання завдань і працездатність системи.
+Відеоматеріали наведено в Додатку Б.
+3
+ВИСНОВКИ
+У ході виконання лабораторної роботи було успішно реалізовано процес розгортання програмної системи та продемонстровано її функціональність. Система забезпечує надійне збереження конфіденційної інформації, автоматизоване управління базами даних та зручну інтеграцію конфігураційних параметрів. Використання сучасних технологій шифрування, хешування та обробки резервних копій значно підвищило рівень безпеки та стабільності роботи системи.
+4
+ДОДАТОК А
+Код скрипту для розгортання програмної системи
+1 import os
+2 from installer import check_and_install_sqlserver, check_and_install_dotnet, check_and_install_chocolatey, check_and_install_task
+3 from db_init import initialize_database
+4 from config_updater import update_appsettings
+5 from encrypter import encrypt, decrypt
+6 from dotenv import load_dotenv
+7 import getpass
+8
+9 """
+10 Finds the most recent backup file in the specified directory.
+11
+12 Args:
+13 directory (str): Path to the directory containing backup files.
+14 extension (str): File extension to filter by (default is ".bak").
+15
+16 Returns:
+17 str: Path to the most recent backup file, or None if no file is found.
+18 """
+19 def find_latest_backup(directory, extension=".bak"):
+20 try:
+21 files = [f for f in os.listdir(directory) if f.endswith(extension)]
+22 if not files:
+23 return None
+24 files.sort(key=lambda x: os.path.getmtime(os.path.join(directory, x)), reverse=True)
+25 return os.path.join(directory, files[0])
+26 except Exception as e:
+27 print(f"Error while finding backup files: {e}")
+28 return None
+5
+29
+30 """
+31 Main function to deploy the server.
+32
+33 This function ensures that prerequisites like software dependencies and configurations are set up.
+34 It checks for the encryption key, installs necessary dependencies, restores the database, and updates configuration files.
+35
+36 Returns:
+37 None
+38 """
+39 def main():
+40 print("Checking prerequisites...")
+41
+42 load_dotenv()
+43 encryption_key = os.getenv("ENCRYPTION_KEY")
+44
+45 if not encryption_key:
+46 print("Encryption key not found in .env file. Exiting.")
+47 return
+48
+49 encryption_key = encryption_key.encode()
+50
+51 check_and_install_chocolatey()
+52 check_and_install_sqlserver()
+53 check_and_install_dotnet()
+54 check_and_install_task()
+55
+56 db_name = "inRoomDb"
+57
+58 script_dir = os.path.dirname(os.path.abspath(__file__))
+59 backup_directory = os.path.join(script_dir, "..\\InRoom.DAL\\Migrations")
+6
+60
+61 backup_directory = os.path.normpath(backup_directory)
+62 backup_file = find_latest_backup(backup_directory)
+63 if not backup_file:
+64 print(f"No backup files found in {backup_directory}")
+65 return
+66 print(f"Using backup file: {backup_file}")
+67
+68 user_key = getpass.getpass("Enter the encryption key to decrypt the migration file: ").encode()
+69
+70 if user_key == encryption_key:
+71 print("Key is correct. Decrypting the file...")
+72 decrypt(backup_file, encryption_key)
+73 else:
+74 print("Invalid key. Exiting.")
+75 return
+76
+77 if not initialize_database(backup_file):
+78 print("Failed to configure the database. Exiting.")
+79 return
+80
+81 encrypt(backup_file, encryption_key)
+82
+83 appsettings_path = os.path.join(script_dir, "../InRoom.API/appsettings.Development.json")
+84 print(appsettings_path)
+85 if os.path.exists(appsettings_path):
+86 update_appsettings(appsettings_path)
+87 else:
+88 print(f"Configuration file {appsettings_path} not found. Skipping configuration update.")
+89
+7
+90 print("Server deployment completed successfully!")
+91
+92 if __name__ == "__main__":
+93 main()
+8
+ДОДАТОК Б
+Посилання на відеозвіт
+https://youtu.be/pxnNgbeAtLA

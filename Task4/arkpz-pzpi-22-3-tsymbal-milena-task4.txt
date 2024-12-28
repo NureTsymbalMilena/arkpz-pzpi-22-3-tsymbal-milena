@@ -1,0 +1,352 @@
+1
+Харківський національний університет радіоелектроніки
+Факультет комп'ютерних наук
+Катедра програмної інженерії
+ЗВІТ
+до лабораторної роботи №4
+з дисципліни «Аналіз та рефакторинг коду»
+на тему: «РОЗРОБКА IoT КЛІЄНТА»
+Виконала
+ст. гр. ПЗПІ-22-3
+Цимбал Мілена Русланівна
+Перевірив
+ст. викладач катедри ПІ
+Сокорчук Ігор Петрович
+Харків 2024
+2
+1 МЕТА
+Розробити програмне забезпечення для розумного пристрою, створеного на базі будь-якої поширеної на сьогодні платформи, придатної для реалізації вбудованих систем.
+2 ХІД РОБОТИ
+У рамках виконання лабораторної роботи були створені діаграми прецедентів і діяльності для розумного пристрою. Діаграма прецедентів дала змогу визначити основні сценарії використання системи та описати, як пристрій взаємодіє зі своєю функціональністю. Діаграми діяльності деталізували виконання операцій у системі, що дозволило візуалізувати логіку взаємодії та потік даних у процесах налаштування та використання пристрою. Ці діаграми наведено в Додатку А.
+Крім того, було розроблено програмне забезпечення для розумного пристрою, яке забезпечує його автономну роботу та інтеграцію із серверною системою. Реалізовано функціональність підключення пристрою до бездротової мережі, що дозволяє отримувати доступ до інтернету для обміну даними.
+Додатково було створено механізми отримання інформації про користувачів, які знаходяться поблизу пристрою. Реалізовано алгоритм, що визначає, чи перебувають користувачі в одному приміщенні з пристроєм. У разі підтвердження створювалися записи про переміщення користувачів.
+Код реалізації цих функцій наведено в Додатку Б. Відеодемонстрація роботи доступна за посиланням у Додатку В.
+3
+ВИСНОВКИ
+У ході виконання лабораторної роботи було успішно реалізовано комплексний підхід до розробки системи для контролю знаходження людини в конкретному приміщенні. Створені діаграми прецедентів і діяльності дозволили чітко окреслити сценарії використання системи та деталізувати порядок виконання операцій, що стало основою для подальшої розробки функціонального програмного забезпечення.
+Розроблене програмне забезпечення забезпечує автономну роботу пристрою, його інтеграцію із серверною системою та функціонування ключових компонентів, таких як підключення до бездротової мережі, синхронізація часу, отримання та аналіз даних про місцезнаходження користувачів і їхні контакти. Запровадження алгоритмів аналізу дозволило підвищити ефективність системи, зокрема шляхом створення записів про переміщення користувачів.
+4
+ДОДАТОК А
+UML Діаграми прецедентів та діяльності
+Рисунок А.1 – Діаграма прецедентів
+5
+Рисунок А.2 – Діаграма діяльності
+6
+ДОДАТОК Б
+Фрагмент коду для управління девайсом
+1 #include <Arduino.h>
+2 #include <ArduinoJson.h>
+3 #include <HTTPClient.h>
+4 #include "DeviceManager.h"
+5 #include "DeviceConfig.h"
+6 #include "models/User.h"
+7 #include "models/DeviceLocation.h"
+8
+9 const char *API_DEVICE_PATH = "https://rnert-193-138-245-54.a.free.pinggy.link/api/Device";
+10
+11 void DeviceManager::updateDeviceStatus(String deviceId, DeviceStatus status)
+12 {
+13 HTTPClient http;
+14
+15 String deviceUrl = String(API_DEVICE_PATH) + "/" + deviceId + "/status";
+16 Serial.print("Updating device status via: ");
+17 Serial.println(deviceUrl);
+18
+19 http.begin(deviceUrl);
+20 http.addHeader("Content-Type", "application/json");
+21
+22 // Преобразуем числовой статус в строку
+23 String requestBody = (status == DeviceStatus::Active) ? "0" : "1";
+24
+25 Serial.print("Request Body: ");
+26 Serial.println(requestBody);
+7
+27
+28 int statusCode = http.PATCH(requestBody);
+29
+30 if (statusCode > 0)
+31 {
+32 Serial.print("HTTP Response Code: ");
+33 Serial.println(statusCode);
+34
+35 String responseBody = http.getString();
+36 Serial.print("Response: ");
+37 Serial.println(responseBody);
+38 }
+39 else
+40 {
+41 Serial.print("HTTP Request failed, error: ");
+42 Serial.println(statusCode);
+43 }
+44
+45 http.end();
+46 }
+47
+48 DeviceLocation DeviceManager::getDeviceLocation(String deviceId)
+49 {
+50 HTTPClient http;
+51
+52 String deviceUrl = String(API_DEVICE_PATH) + "/" + deviceId + "/location";
+53 Serial.print("Getting device location via: ");
+54 Serial.println(deviceUrl);
+55
+8
+56 http.begin(deviceUrl);
+57 http.addHeader("Content-Type", "application/json");
+58
+59 int statusCode = http.GET();
+60
+61 DeviceLocation location;
+62
+63 if (statusCode > 0)
+64 {
+65 Serial.print("HTTP Response Code: ");
+66 Serial.println(statusCode);
+67
+68 if (statusCode == HTTP_CODE_OK)
+69 {
+70 String response = http.getString();
+71 Serial.print("Response: ");
+72 Serial.println(response);
+73
+74 // Используем StaticJsonDocument<256> для получения местоположения
+75 StaticJsonDocument<256> responseJson;
+76 DeserializationError error = deserializeJson(responseJson, response);
+77
+78 if (!error)
+79 {
+80 location.X = responseJson.containsKey("x") ? responseJson["x"].as<float>() : 0.0f;
+81 location.Y = responseJson.containsKey("y") ? responseJson["y"].as<float>() : 0.0f;
+82 location.Z = responseJson.containsKey("z") ? responseJson["z"].as<float>() : 0.0f;
+83
+9
+84 location.Height = responseJson.containsKey("height") ? responseJson["height"].as<float>() : 0.0f;
+85 location.Width = responseJson.containsKey("width") ? responseJson["width"].as<float>() : 0.0f;
+86 location.Length = responseJson.containsKey("length") ? responseJson["length"].as<float>() : 0.0f;
+87
+88 Serial.println("Device location retrieved successfully.");
+89 }
+90 else
+91 {
+92 Serial.print("JSON Parsing Error: ");
+93 Serial.println(error.c_str());
+94 }
+95 }
+96 else
+97 {
+98 Serial.println("Failed to retrieve device location.");
+99 }
+100 }
+101 else
+102 {
+103 Serial.print("HTTP Request failed, error: ");
+104 Serial.println(http.errorToString(statusCode).c_str());
+105 }
+106
+107 http.end();
+108 return location;
+109 }
+110
+10
+111 UsersInZone DeviceManager::getUsersNearby(String deviceId)
+112 {
+113 HTTPClient http;
+114
+115 String deviceUrl = String(API_DEVICE_PATH) + "/" + deviceId + "/usersInZone";
+116 Serial.print("Getting users in device zone via: ");
+117 Serial.println(deviceUrl);
+118
+119 http.begin(deviceUrl);
+120 http.addHeader("Content-Type", "application/json");
+121
+122 int statusCode = http.GET();
+123
+124 if (statusCode > 0)
+125 {
+126 Serial.print("HTTP Response Code: ");
+127 Serial.println(statusCode);
+128
+129 if (statusCode == HTTP_CODE_OK)
+130 {
+131 String response = http.getString();
+132 Serial.print("Response: ");
+133 Serial.println(response);
+134
+135 // Используем StaticJsonDocument<512> для получения пользователей в зоне
+136 StaticJsonDocument<512> responseJson;
+137 DeserializationError error = deserializeJson(responseJson, response);
+138 if (!error)
+139 {
+11
+140 UsersInZone usersInZone;
+141
+142 JsonArray usersArray = responseJson["users"].as<JsonArray>();
+143 for (JsonObject user : usersArray)
+144 {
+145 User userObj;
+146 userObj.UserId = user["userId"].as<String>();
+147 userObj.X = user["x"].as<float>();
+148 userObj.Y = user["y"].as<float>();
+149 userObj.Z = user["z"].as<float>();
+150
+151 usersInZone.Users.push_back(userObj);
+152 }
+153 return usersInZone;
+154 }
+155 else
+156 {
+157 Serial.print("JSON Parsing Error: ");
+158 Serial.println(error.c_str());
+159 }
+160 }
+161 }
+162 else
+163 {
+164 Serial.print("HTTP Request failed, error: ");
+165 Serial.println(http.errorToString(statusCode).c_str());
+166 }
+167
+168 http.end();
+12
+169
+170 return UsersInZone();
+171 }
+Фрагмент коду для управління переміщеннями
+1 #include <Arduino.h>
+2 #include <HTTPClient.h>
+3 #include <ArduinoJson.h>
+4 #include "MovementManager.h"
+5 #include "models/UsersInZone.h"
+6
+7 const char *API_MOVEMENT_PATH = "https://rnert-193-138-245-54.a.free.pinggy.link/api/Movement";
+8
+9 void MovementManager::processUsersAndCreateMovements(const UsersInZone &users, const DeviceLocation &deviceLocation, const String &deviceId)
+10 {
+11 float halfWidth = deviceLocation.Width / 2;
+12 float halfHeight = deviceLocation.Height / 2;
+13 float halfLength = deviceLocation.Length / 2;
+14
+15 for (const auto &user : users.Users)
+16 {
+17 bool isInZone =
+18 (user.X >= (deviceLocation.X - halfWidth) && user.X <= (deviceLocation.X + halfWidth)) &&
+19 (user.Y >= (deviceLocation.Y - halfHeight) && user.Y <= (deviceLocation.Y + halfHeight)) &&
+20 (user.Z >= (deviceLocation.Z - halfLength) && user.Z <= (deviceLocation.Z + halfLength));
+13
+21
+22 if (isInZone)
+23 {
+24 Serial.print("User ");
+25 Serial.print(user.UserId);
+26 Serial.println(" is within the device's zone. Creating movement...");
+27 MovementManager::createNewMovement(deviceId, user.UserId);
+28 }
+29 else
+30 {
+31 Serial.print("User ");
+32 Serial.print(user.UserId);
+33 Serial.println(" is outside the device's zone.");
+34 }
+35 }
+36 }
+37
+38 void MovementManager::createNewMovement(String deviceId, String userId)
+39 {
+40 HTTPClient http;
+41
+42 Serial.print("Creating new movement via: ");
+43 Serial.println(API_MOVEMENT_PATH);
+44
+45 http.begin(API_MOVEMENT_PATH);
+46 http.addHeader("Content-Type", "application/json");
+47
+48 StaticJsonDocument<200> jsonDoc;
+49 jsonDoc["deviceId"] = deviceId;
+14
+50 jsonDoc["userId"] = userId;
+51
+52 String requestBody;
+53 serializeJson(jsonDoc, requestBody);
+54
+55 Serial.print("Request Body: ");
+56 Serial.println(requestBody);
+57
+58 int statusCode = http.POST(requestBody);
+59
+60 if (statusCode > 0)
+61 {
+62 Serial.print("HTTP Response Code: ");
+63 Serial.println(statusCode);
+64 }
+65 else
+66 {
+67 Serial.print("HTTP Request failed, error: ");
+68 Serial.println(statusCode);
+69 }
+70
+71 http.end();
+72 }
+Фрагмент коду для налаштування бездротової мережі
+1 #include "WiFiManager.h"
+2
+3 const char *WIFI_SSID = "Wokwi-GUEST";
+15
+4 const char *WIFI_PASSWORD = "";
+5
+6 WebServer server(80);
+7
+8 // Function to connect to WiFi using predefined SSID and password
+9 void connectToWiFi()
+10 {
+11 WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+12
+13 while (WiFi.status() != WL_CONNECTED)
+14 {
+15 delay(500);
+16 Serial.println("Connecting to WiFi...");
+17 }
+18 Serial.println("Connected to WiFi");
+19 }
+20
+21 // Function to handle the root URL and display a form for WiFi setup
+22 void handleRoot()
+23 {
+24 String html = "<h1>WiFi Setup</h1>"
+25 "<form action='/setWiFi' method='POST'>"
+26 "<label>SSID: </label><input type='text' name='ssid'><br>"
+27 "<label>Password: </label><input type='password' name='password'><br>"
+28 "<input type='submit' value='Connect'>"
+29 "</form>";
+30 server.send(200, "text/html", html);
+31 }
+32
+16
+33 // Function to handle the WiFi setup form submission
+34 void handleSetWiFi()
+35 {
+36 if (server.hasArg("ssid") && server.hasArg("password"))
+37 {
+38 String ssid = server.arg("ssid");
+39 String password = server.arg("password");
+40
+41 Serial.print("Received SSID: ");
+42 Serial.println(ssid);
+43 Serial.print("Received Password: ");
+44 Serial.println(password);
+45
+46 WIFI_SSID = ssid.c_str();
+47 WIFI_PASSWORD = password.c_str();
+48
+49 server.send(200, "text/plain", "WiFi credentials received. Rebooting...");
+50 delay(2000);
+51 ESP.restart();
+52 }
+53 else
+54 {
+55 server.send(400, "text/plain", "SSID and Password are required!");
+56 }
+57 }
+17
+ДОДАТОК В
+Посилання на відеозвіт
+https://youtu.be/xEn2tdeSkE4
